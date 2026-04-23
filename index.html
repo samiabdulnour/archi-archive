@@ -1,0 +1,1382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#111">
+  <title>archi-archive</title>
+  <style>
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, system-ui, sans-serif;
+      background: #111;
+      color: #eee;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    button, input, textarea {
+      font-family: inherit;
+      font-size: inherit;
+      color: inherit;
+    }
+
+    button {
+      border: 0;
+      background: none;
+      cursor: pointer;
+    }
+
+    /* Views: only one shown at a time */
+    .view {
+      display: none;
+      flex-direction: column;
+      min-height: 100vh;
+      min-height: 100dvh;
+    }
+    .view.active { display: flex; }
+
+    .hidden-file {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    /* ============ HOME ============ */
+    #view-home {
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 1rem;
+      gap: 2rem;
+    }
+
+    #view-home h1 {
+      font-size: 0.85rem;
+      font-weight: 500;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: #888;
+      margin: 0;
+    }
+
+    label.take-photo {
+      display: block;
+      width: 100%;
+      max-width: 320px;
+      padding: 1.25rem;
+      border-radius: 999px;
+      background: #fff;
+      color: #111;
+      font-size: 1.1rem;
+      font-weight: 600;
+      text-align: center;
+      cursor: pointer;
+      user-select: none;
+    }
+    label.take-photo:active { background: #ccc; }
+
+    .link-button {
+      padding: 0.75rem 1.25rem;
+      font-size: 0.95rem;
+      color: #aaa;
+      border: 1px solid #333;
+      border-radius: 999px;
+      background: transparent;
+    }
+    .link-button:active { background: #222; }
+
+    /* ============ CAPTURE ============ */
+    #view-capture { padding: 1rem; gap: 1rem; }
+
+    #capture-preview {
+      width: 100%;
+      max-height: 38vh;
+      object-fit: contain;
+      border-radius: 12px;
+      background: #222;
+    }
+
+    .step-question {
+      text-align: center;
+      font-size: 0.8rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: #888;
+      margin: 0.25rem 0 0.5rem;
+    }
+
+    .type-buttons {
+      display: grid;
+      gap: 0.6rem;
+    }
+
+    .type-btn {
+      padding: 1rem 1.15rem;
+      background: #222;
+      border: 1px solid #333;
+      border-radius: 14px;
+      color: #eee;
+      text-align: left;
+      line-height: 1.3;
+    }
+    .type-btn:active { background: #333; }
+    .type-btn strong {
+      display: block;
+      font-weight: 600;
+      font-size: 1.1rem;
+      margin-bottom: 0.15rem;
+    }
+    .type-btn span { color: #888; font-size: 0.82rem; }
+
+    /* Chip grids for typology / element / graphic-kind / visual */
+    .chip-group { margin-bottom: 0.75rem; }
+
+    .chip-group-label {
+      font-size: 0.7rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #666;
+      margin: 0 0 0.4rem;
+    }
+
+    .chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+    }
+
+    .chip {
+      padding: 0.5rem 0.9rem;
+      border-radius: 999px;
+      background: transparent;
+      border: 1px solid #333;
+      color: #ccc;
+      font-size: 0.9rem;
+      line-height: 1;
+    }
+    .chip:active { background: #222; }
+    .chip.active {
+      background: #eee;
+      color: #111;
+      border-color: #eee;
+    }
+
+    /* Artwork details form */
+    .form-field {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .form-label {
+      font-size: 0.7rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #888;
+    }
+
+    .form-input {
+      padding: 0.7rem 0.85rem;
+      border-radius: 10px;
+      background: #1a1a1a;
+      border: 1px solid #333;
+      color: #eee;
+      font-size: 1rem;
+      width: 100%;
+    }
+    .form-input:focus { outline: 2px solid #555; }
+
+    .capture-actions {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+    }
+
+    .capture-actions button {
+      flex: 1;
+      padding: 0.85rem;
+      border-radius: 999px;
+      font-size: 0.95rem;
+    }
+
+    .btn-primary {
+      background: #fff;
+      color: #111;
+      font-weight: 600;
+    }
+    .btn-primary:active { background: #ccc; }
+
+    .btn-secondary {
+      background: transparent;
+      border: 1px solid #444;
+      color: #ccc;
+    }
+    .btn-secondary:active { background: #222; }
+
+    .label-photo-box {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem;
+      background: #1a1a1a;
+      border-radius: 10px;
+      margin-bottom: 0.75rem;
+    }
+
+    .label-photo-box img {
+      width: 48px;
+      height: 48px;
+      object-fit: cover;
+      border-radius: 6px;
+      background: #222;
+    }
+
+    .label-photo-box .label-meta {
+      flex: 1;
+      font-size: 0.85rem;
+      color: #aaa;
+    }
+
+    .label-photo-box .label-remove {
+      color: #c66;
+      font-size: 0.85rem;
+      padding: 0.35rem 0.6rem;
+    }
+
+    #capture-cancel {
+      color: #888;
+      padding: 0.75rem;
+      font-size: 0.9rem;
+      margin-top: auto;
+    }
+
+    /* ============ GALLERY ============ */
+    #view-gallery { padding: 0 0 2rem; }
+
+    .gallery-header {
+      display: flex;
+      align-items: center;
+      padding: 1rem;
+      gap: 0.75rem;
+      position: sticky;
+      top: 0;
+      background: #111;
+      z-index: 10;
+    }
+
+    .back-btn {
+      font-size: 1.4rem;
+      padding: 0.25rem 0.5rem;
+      color: #eee;
+    }
+
+    .search-input {
+      flex: 1;
+      padding: 0.6rem 0.9rem;
+      border-radius: 999px;
+      background: #1a1a1a;
+      border: 1px solid #333;
+      color: #eee;
+      font-size: 0.95rem;
+    }
+    .search-input:focus { outline: 2px solid #555; }
+
+    .type-filter-row {
+      display: flex;
+      gap: 0.4rem;
+      padding: 0 1rem 0.75rem;
+      overflow-x: auto;
+    }
+
+    #count {
+      padding: 0 1rem 0.5rem;
+      color: #666;
+      font-size: 0.8rem;
+    }
+
+    .photo-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2px;
+      padding: 0 2px;
+    }
+
+    .photo-grid .tile {
+      position: relative;
+      aspect-ratio: 1;
+      background: #222;
+      cursor: pointer;
+      overflow: hidden;
+    }
+
+    .photo-grid img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .photo-grid .type-badge {
+      position: absolute;
+      top: 4px;
+      left: 4px;
+      background: rgba(0,0,0,0.6);
+      color: #fff;
+      font-size: 0.65rem;
+      padding: 2px 6px;
+      border-radius: 999px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 3rem 1rem;
+      color: #666;
+    }
+
+    /* ============ DETAIL ============ */
+    #view-detail { padding: 1rem; gap: 1rem; }
+
+    #detail-img {
+      width: 100%;
+      max-height: 50vh;
+      object-fit: contain;
+      border-radius: 12px;
+      background: #222;
+    }
+
+    .section {
+      background: #1a1a1a;
+      border-radius: 12px;
+      padding: 0.9rem 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .section-title {
+      font-size: 0.7rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #888;
+      margin: 0 0 0.15rem;
+    }
+
+    .keyword-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+    }
+
+    .keyword-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.3rem 0.65rem;
+      background: #222;
+      border: 1px solid #333;
+      border-radius: 999px;
+      color: #ccc;
+      font-size: 0.85rem;
+    }
+
+    .keyword-tag .remove {
+      color: #888;
+      cursor: pointer;
+    }
+
+    .keyword-input {
+      padding: 0.55rem 0.85rem;
+      border-radius: 999px;
+      background: #1a1a1a;
+      border: 1px solid #333;
+      color: #eee;
+      font-size: 0.9rem;
+      flex: 1;
+      min-width: 100px;
+    }
+
+    .meta-date {
+      color: #888;
+      font-size: 0.8rem;
+    }
+
+    #delete-btn {
+      margin-top: 0.5rem;
+      padding: 0.85rem;
+      border-radius: 999px;
+      background: transparent;
+      border: 1px solid #442;
+      color: #c66;
+      font-size: 0.95rem;
+    }
+    #delete-btn:active { background: #2a1a1a; }
+
+    /* Toast */
+    #toast {
+      position: fixed;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%) translateY(2rem);
+      background: #eee;
+      color: #111;
+      padding: 0.75rem 1.25rem;
+      border-radius: 999px;
+      font-size: 0.95rem;
+      font-weight: 500;
+      opacity: 0;
+      transition: opacity 0.2s, transform 0.2s;
+      pointer-events: none;
+      z-index: 100;
+    }
+    #toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ============ HOME ============ -->
+  <section id="view-home" class="view active">
+    <h1>archi-archive</h1>
+    <label class="take-photo" for="camera-input">Take photo</label>
+    <button class="link-button" id="open-gallery">Browse archive</button>
+  </section>
+
+  <!-- ============ CAPTURE ============ -->
+  <section id="view-capture" class="view">
+    <img id="capture-preview" alt="">
+    <div id="capture-step-container"></div>
+    <button id="capture-cancel">Cancel</button>
+  </section>
+
+  <!-- ============ GALLERY ============ -->
+  <section id="view-gallery" class="view">
+    <header class="gallery-header">
+      <button class="back-btn" data-goto="home">&larr;</button>
+      <input type="search" class="search-input" id="search-input" placeholder="Search (e.g. railing, school, colorful)">
+    </header>
+
+    <div class="type-filter-row" id="type-filter-row">
+      <button class="chip active" data-type-filter="all">All</button>
+      <button class="chip" data-type-filter="building">Building</button>
+      <button class="chip" data-type-filter="element">Element</button>
+      <button class="chip" data-type-filter="graphic">Graphic</button>
+    </div>
+
+    <div id="count"></div>
+    <div id="photo-grid" class="photo-grid"></div>
+    <p id="empty" class="empty-state" hidden>No photos yet.</p>
+  </section>
+
+  <!-- ============ DETAIL / ENRICH ============ -->
+  <section id="view-detail" class="view">
+    <header class="gallery-header">
+      <button class="back-btn" data-goto="gallery">&larr;</button>
+      <span class="meta-date" id="detail-date"></span>
+    </header>
+    <img id="detail-img" alt="">
+    <div id="detail-body"></div>
+    <button id="delete-btn">Delete photo</button>
+  </section>
+
+  <!-- Hidden file inputs (camera triggers) -->
+  <input id="camera-input" class="hidden-file" type="file" accept="image/*" capture="environment">
+  <input id="label-input" class="hidden-file" type="file" accept="image/*" capture="environment">
+
+  <div id="toast"></div>
+
+  <script>
+    // ============================================================
+    // TAXONOMY (v3)
+    // ============================================================
+    const TYPES = [
+      { id: 'building', label: 'Building', hint: 'A whole building or space' },
+      { id: 'element',  label: 'Element',  hint: 'A part or detail (railing, stair, tile...)' },
+      { id: 'graphic',  label: 'Graphic',  hint: 'Flat: artwork, book, drawing, product, contact...' },
+    ];
+
+    const TYPOLOGY = [
+      'Residential', 'Office', 'Cultural', 'Educational', 'Religious',
+      'Civic', 'Commercial', 'Hospitality', 'Industrial', 'Heritage/Ruin', 'Other'
+    ];
+
+    const CONCEPTS = [
+      { id: 'form',        label: 'Form',        hint: 'massing, geometry, composition' },
+      { id: 'space',       label: 'Space',       hint: 'enclosure, sequence, proportion' },
+      { id: 'light',       label: 'Light',       hint: 'daylight, shadow, atmosphere' },
+      { id: 'materiality', label: 'Materiality', hint: 'surface, texture, tactility' },
+      { id: 'structure',   label: 'Structure',   hint: 'tectonics, load' },
+      { id: 'context',     label: 'Context',     hint: 'site, landscape, urban' },
+      { id: 'circulation', label: 'Circulation', hint: 'movement, threshold, path' },
+      { id: 'craft',       label: 'Craft',       hint: 'joint, junction, made-ness' },
+    ];
+
+    const ELEMENT_GROUPS = {
+      Structural:  ['Column', 'Beam', 'Wall', 'Arch', 'Vault', 'Dome', 'Truss'],
+      Circulation: ['Door', 'Window', 'Stair', 'Ramp', 'Corridor', 'Threshold', 'Balcony'],
+      Enclosure:   ['Roof', 'Ceiling', 'Floor', 'Facade'],
+      Ornament:    ['Cornice', 'Railing', 'Joint', 'Pavement'],
+    };
+
+    const MATERIALS = [
+      'Concrete', 'Brick/Masonry', 'Stone', 'Timber', 'Steel', 'Other Metals',
+      'Glass', 'Earth/Rammed', 'Ceramic/Tile', 'Plaster/Render', 'Textile/Soft'
+    ];
+
+    const GRAPHIC_KINDS = [
+      { id: 'artwork', label: 'Artwork', hint: 'painting, sculpture' },
+      { id: 'book',    label: 'Book',    hint: 'page, article' },
+      { id: 'drawing', label: 'Drawing', hint: 'sketch, plan' },
+      { id: 'product', label: 'Product', hint: 'lamp, chair, spec' },
+      { id: 'contact', label: 'Contact', hint: 'business card' },
+      { id: 'other',   label: 'Other',   hint: 'note, sign, receipt' },
+    ];
+
+    const VISUAL = [
+      'Colorful', 'Monochrome', 'Textured', 'Minimal', 'Patterned',
+      'Ornate', 'Dark', 'Light'
+    ];
+
+    // ============================================================
+    // STATE
+    // ============================================================
+    let pendingBlob = null;       // primary photo during capture
+    let pendingLabelBlob = null;  // optional label photo during capture
+    let captureDraft = null;      // tags_human being built during capture
+    let captureStep = null;       // 'type' | 'primary-building' | 'primary-element' | 'primary-graphic' | 'artwork-details'
+
+    let activeFilters = { type: 'all', search: '' };
+    let currentDetailId = null;
+    let currentDetailRecord = null;
+    let objectUrls = [];
+
+    // For label-input: context-dependent behaviour
+    let labelInputTarget = null;  // 'capture' | 'detail'
+
+    // ============================================================
+    // INDEXEDDB
+    // ============================================================
+    const DB_NAME = 'archi-archive';
+    const STORE = 'photos';
+    const DB_VERSION = 2;   // v3 app / db version 2 (v2 app was db version 1)
+    let dbPromise = null;
+
+    function openDb() {
+      if (dbPromise) return dbPromise;
+      dbPromise = new Promise((resolve, reject) => {
+        const req = indexedDB.open(DB_NAME, DB_VERSION);
+        req.onupgradeneeded = (event) => {
+          const db = req.result;
+          // v3 schema change is big enough that we wipe and recreate
+          if (db.objectStoreNames.contains(STORE)) {
+            db.deleteObjectStore(STORE);
+          }
+          db.createObjectStore(STORE, { keyPath: 'id', autoIncrement: true });
+        };
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+      return dbPromise;
+    }
+
+    async function dbAdd(record) {
+      const db = await openDb();
+      return new Promise((resolve, reject) => {
+        const req = db.transaction(STORE, 'readwrite').objectStore(STORE).add(record);
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+    }
+
+    async function dbPut(record) {
+      const db = await openDb();
+      return new Promise((resolve, reject) => {
+        const req = db.transaction(STORE, 'readwrite').objectStore(STORE).put(record);
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+    }
+
+    async function dbGetAll() {
+      const db = await openDb();
+      return new Promise((resolve, reject) => {
+        const req = db.transaction(STORE, 'readonly').objectStore(STORE).getAll();
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+    }
+
+    async function dbGet(id) {
+      const db = await openDb();
+      return new Promise((resolve, reject) => {
+        const req = db.transaction(STORE, 'readonly').objectStore(STORE).get(id);
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+    }
+
+    async function dbDelete(id) {
+      const db = await openDb();
+      return new Promise((resolve, reject) => {
+        const req = db.transaction(STORE, 'readwrite').objectStore(STORE).delete(id);
+        req.onsuccess = () => resolve();
+        req.onerror = () => reject(req.error);
+      });
+    }
+
+    // ============================================================
+    // SEARCH INDEX — flatten all tag values into a searchable string
+    // ============================================================
+    function buildSearchText(record) {
+      const t = record.tags_human || {};
+      const parts = [
+        t.type, t.typology,
+        ...(t.concepts || []),
+        t.element_name, t.material,
+        t.graphic_kind,
+        t.title, t.creator, t.year, t.source,
+        t.brand, t.model,
+        t.contact_name, t.contact_company,
+        t.project,
+        ...(t.visual || []),
+        ...(t.keywords || []),
+      ];
+      return parts.filter(Boolean).join(' ').toLowerCase();
+    }
+
+    // ============================================================
+    // VIEW SWITCHING
+    // ============================================================
+    function showView(name) {
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+      document.getElementById('view-' + name).classList.add('active');
+      window.scrollTo(0, 0);
+    }
+
+    document.querySelectorAll('[data-goto]').forEach(btn => {
+      btn.addEventListener('click', () => showView(btn.dataset.goto));
+    });
+
+    // ============================================================
+    // CAPTURE — primary camera
+    // ============================================================
+    const cameraInput = document.getElementById('camera-input');
+    const capturePreview = document.getElementById('capture-preview');
+    const stepContainer = document.getElementById('capture-step-container');
+
+    cameraInput.addEventListener('change', (event) => {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      pendingBlob = file;
+      pendingLabelBlob = null;
+      captureDraft = {};
+      captureStep = 'type';
+
+      capturePreview.src = URL.createObjectURL(file);
+      showView('capture');
+      renderCaptureStep();
+
+      event.target.value = '';
+    });
+
+    document.getElementById('capture-cancel').addEventListener('click', () => {
+      resetCapture();
+      showView('home');
+    });
+
+    function resetCapture() {
+      pendingBlob = null;
+      pendingLabelBlob = null;
+      captureDraft = null;
+      captureStep = null;
+    }
+
+    function renderCaptureStep() {
+      const c = stepContainer;
+      c.innerHTML = '';
+
+      if (captureStep === 'type') {
+        renderTypeStep(c);
+      } else if (captureStep === 'primary-building') {
+        renderTypologyStep(c);
+      } else if (captureStep === 'primary-element') {
+        renderElementStep(c);
+      } else if (captureStep === 'primary-graphic') {
+        renderGraphicKindStep(c);
+      } else if (captureStep === 'artwork-details') {
+        renderArtworkDetailsStep(c);
+      }
+    }
+
+    function renderTypeStep(c) {
+      c.innerHTML = '<p class="step-question">What is this?</p>';
+      const wrap = document.createElement('div');
+      wrap.className = 'type-buttons';
+      TYPES.forEach(t => {
+        const btn = document.createElement('button');
+        btn.className = 'type-btn';
+        btn.innerHTML = `<strong>${t.label}</strong><span>${t.hint}</span>`;
+        btn.addEventListener('click', () => {
+          captureDraft.type = t.id;
+          if (t.id === 'building') captureStep = 'primary-building';
+          else if (t.id === 'element') captureStep = 'primary-element';
+          else captureStep = 'primary-graphic';
+          renderCaptureStep();
+        });
+        wrap.appendChild(btn);
+      });
+      c.appendChild(wrap);
+    }
+
+    function renderTypologyStep(c) {
+      c.innerHTML = '<p class="step-question">Typology?</p>';
+      const row = document.createElement('div');
+      row.className = 'chip-row';
+      TYPOLOGY.forEach(t => {
+        const chip = document.createElement('button');
+        chip.className = 'chip';
+        chip.textContent = t;
+        chip.addEventListener('click', () => {
+          captureDraft.typology = t;
+          finishCapture();
+        });
+        row.appendChild(chip);
+      });
+      c.appendChild(row);
+      c.appendChild(skipButton());
+    }
+
+    function renderElementStep(c) {
+      c.innerHTML = '<p class="step-question">Which element?</p>';
+      Object.entries(ELEMENT_GROUPS).forEach(([groupName, items]) => {
+        const g = document.createElement('div');
+        g.className = 'chip-group';
+        g.innerHTML = `<p class="chip-group-label">${groupName}</p>`;
+        const row = document.createElement('div');
+        row.className = 'chip-row';
+        items.forEach(item => {
+          const chip = document.createElement('button');
+          chip.className = 'chip';
+          chip.textContent = item;
+          chip.addEventListener('click', () => {
+            captureDraft.element_name = item;
+            finishCapture();
+          });
+          row.appendChild(chip);
+        });
+        g.appendChild(row);
+        c.appendChild(g);
+      });
+      c.appendChild(skipButton());
+    }
+
+    function renderGraphicKindStep(c) {
+      c.innerHTML = '<p class="step-question">What kind of graphic?</p>';
+      const wrap = document.createElement('div');
+      wrap.className = 'type-buttons';
+      GRAPHIC_KINDS.forEach(k => {
+        const btn = document.createElement('button');
+        btn.className = 'type-btn';
+        btn.innerHTML = `<strong>${k.label}</strong><span>${k.hint}</span>`;
+        btn.addEventListener('click', () => {
+          captureDraft.graphic_kind = k.id;
+          if (k.id === 'artwork') {
+            captureStep = 'artwork-details';
+            renderCaptureStep();
+          } else {
+            finishCapture();
+          }
+        });
+        wrap.appendChild(btn);
+      });
+      c.appendChild(wrap);
+    }
+
+    function renderArtworkDetailsStep(c) {
+      c.innerHTML = '<p class="step-question">Artwork details (optional)</p>';
+
+      // Label photo area (if attached, show thumbnail; else show "Add label photo")
+      const labelArea = document.createElement('div');
+      labelArea.id = 'capture-label-area';
+      c.appendChild(labelArea);
+      renderCaptureLabelArea();
+
+      ['title', 'creator', 'year', 'source'].forEach(field => {
+        const f = document.createElement('div');
+        f.className = 'form-field';
+        f.innerHTML = `
+          <label class="form-label">${labelFor(field)}</label>
+          <input class="form-input" type="text" data-field="${field}">
+        `;
+        const input = f.querySelector('input');
+        input.value = captureDraft[field] || '';
+        input.addEventListener('input', () => {
+          captureDraft[field] = input.value.trim() || null;
+        });
+        c.appendChild(f);
+      });
+
+      const actions = document.createElement('div');
+      actions.className = 'capture-actions';
+      actions.innerHTML = `
+        <button class="btn-secondary" id="skip-artwork">Skip</button>
+        <button class="btn-primary" id="save-artwork">Save</button>
+      `;
+      c.appendChild(actions);
+      document.getElementById('skip-artwork').addEventListener('click', finishCapture);
+      document.getElementById('save-artwork').addEventListener('click', finishCapture);
+    }
+
+    function renderCaptureLabelArea() {
+      const area = document.getElementById('capture-label-area');
+      if (!area) return;
+      area.innerHTML = '';
+      if (pendingLabelBlob) {
+        const box = document.createElement('div');
+        box.className = 'label-photo-box';
+        const img = document.createElement('img');
+        const url = URL.createObjectURL(pendingLabelBlob);
+        objectUrls.push(url);
+        img.src = url;
+        box.appendChild(img);
+        const meta = document.createElement('div');
+        meta.className = 'label-meta';
+        meta.textContent = 'Label photo attached';
+        box.appendChild(meta);
+        const rm = document.createElement('button');
+        rm.className = 'label-remove';
+        rm.textContent = 'Remove';
+        rm.addEventListener('click', () => {
+          pendingLabelBlob = null;
+          renderCaptureLabelArea();
+        });
+        box.appendChild(rm);
+        area.appendChild(box);
+      } else {
+        const btn = document.createElement('button');
+        btn.className = 'btn-secondary';
+        btn.style.width = '100%';
+        btn.style.padding = '0.75rem';
+        btn.style.borderRadius = '10px';
+        btn.style.marginBottom = '0.75rem';
+        btn.textContent = '+ Add label photo';
+        btn.addEventListener('click', () => {
+          labelInputTarget = 'capture';
+          document.getElementById('label-input').click();
+        });
+        area.appendChild(btn);
+      }
+    }
+
+    function skipButton() {
+      const s = document.createElement('button');
+      s.className = 'btn-secondary';
+      s.style.width = '100%';
+      s.style.marginTop = '0.5rem';
+      s.style.padding = '0.75rem';
+      s.textContent = 'Skip for now (tag later)';
+      s.addEventListener('click', finishCapture);
+      return s;
+    }
+
+    function labelFor(field) {
+      return ({
+        title: 'Title',
+        creator: 'Artist',
+        year: 'Year',
+        source: 'Source / Where',
+      })[field] || field;
+    }
+
+    // ============================================================
+    // LABEL-INPUT (shared by capture flow and detail view)
+    // ============================================================
+    const labelInput = document.getElementById('label-input');
+    labelInput.addEventListener('change', async (event) => {
+      const file = event.target.files[0];
+      event.target.value = '';
+      if (!file) return;
+
+      if (labelInputTarget === 'capture') {
+        pendingLabelBlob = file;
+        renderCaptureLabelArea();
+      } else if (labelInputTarget === 'detail' && currentDetailRecord) {
+        currentDetailRecord.label_blob = file;
+        await saveDetailRecord();
+        renderDetail();
+      }
+      labelInputTarget = null;
+    });
+
+    // ============================================================
+    // Finish capture — write to DB
+    // ============================================================
+    async function finishCapture() {
+      const t = captureDraft;
+      const record = {
+        blob: pendingBlob,
+        label_blob: pendingLabelBlob || null,
+        created_at: Date.now(),
+        tags_human: {
+          type: t.type,
+          typology: t.typology || null,
+          concepts: [],
+          element_name: t.element_name || null,
+          material: null,
+          graphic_kind: t.graphic_kind || null,
+          title: t.title || null,
+          creator: t.creator || null,
+          year: t.year || null,
+          source: t.source || null,
+          brand: null,
+          model: null,
+          contact_name: null,
+          contact_company: null,
+          project: null,
+          visual: [],
+          keywords: [],
+        },
+        tags_machine: {},
+      };
+      record.search_text = buildSearchText(record);
+
+      await dbAdd(record);
+      resetCapture();
+      showView('home');
+      toast('Saved');
+    }
+
+    // ============================================================
+    // GALLERY
+    // ============================================================
+    document.getElementById('open-gallery').addEventListener('click', async () => {
+      showView('gallery');
+      await renderGallery();
+    });
+
+    document.getElementById('search-input').addEventListener('input', (e) => {
+      activeFilters.search = e.target.value.trim().toLowerCase();
+      renderGallery();
+    });
+
+    document.querySelectorAll('[data-type-filter]').forEach(chip => {
+      chip.addEventListener('click', () => {
+        document.querySelectorAll('[data-type-filter]').forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        activeFilters.type = chip.dataset.typeFilter;
+        renderGallery();
+      });
+    });
+
+    async function renderGallery() {
+      // free old object urls
+      objectUrls.forEach(URL.revokeObjectURL);
+      objectUrls = [];
+
+      const all = await dbGetAll();
+      const queryWords = activeFilters.search.split(/\s+/).filter(Boolean);
+
+      const filtered = all.filter(rec => {
+        if (activeFilters.type !== 'all' && rec.tags_human.type !== activeFilters.type) return false;
+        if (queryWords.length) {
+          const text = rec.search_text || buildSearchText(rec);
+          return queryWords.every(w => text.includes(w));
+        }
+        return true;
+      });
+      filtered.sort((a, b) => b.created_at - a.created_at);
+
+      const grid = document.getElementById('photo-grid');
+      grid.innerHTML = '';
+      filtered.forEach(rec => {
+        const tile = document.createElement('div');
+        tile.className = 'tile';
+        const img = document.createElement('img');
+        const url = URL.createObjectURL(rec.blob);
+        objectUrls.push(url);
+        img.src = url;
+        tile.appendChild(img);
+        const badge = document.createElement('span');
+        badge.className = 'type-badge';
+        badge.textContent = (rec.tags_human.type || '?').slice(0, 1).toUpperCase();
+        tile.appendChild(badge);
+        tile.addEventListener('click', () => openDetail(rec.id));
+        grid.appendChild(tile);
+      });
+
+      document.getElementById('count').textContent =
+        `${filtered.length}${all.length !== filtered.length ? ' of ' + all.length : ''} ${filtered.length === 1 ? 'photo' : 'photos'}`;
+      document.getElementById('empty').hidden = all.length !== 0;
+    }
+
+    // ============================================================
+    // DETAIL + ENRICH (combined)
+    // ============================================================
+    async function openDetail(id) {
+      const rec = await dbGet(id);
+      if (!rec) return;
+      currentDetailId = id;
+      currentDetailRecord = rec;
+      renderDetail();
+      showView('detail');
+    }
+
+    function renderDetail() {
+      const rec = currentDetailRecord;
+      if (!rec) return;
+
+      const img = document.getElementById('detail-img');
+      const url = URL.createObjectURL(rec.blob);
+      objectUrls.push(url);
+      img.src = url;
+
+      document.getElementById('detail-date').textContent = new Date(rec.created_at).toLocaleString();
+
+      const body = document.getElementById('detail-body');
+      body.innerHTML = '';
+
+      const type = rec.tags_human.type;
+
+      // TYPE header
+      body.appendChild(section('Type', TYPES.find(t => t.id === type)?.label || '—'));
+
+      if (type === 'building') renderBuildingFields(body);
+      if (type === 'element')  renderElementFields(body);
+      if (type === 'graphic')  renderGraphicFields(body);
+
+      // Universal sections
+      renderProjectField(body);
+      renderVisualField(body);
+      renderKeywordsField(body);
+    }
+
+    function section(title, contentEl) {
+      const s = document.createElement('div');
+      s.className = 'section';
+      const h = document.createElement('p');
+      h.className = 'section-title';
+      h.textContent = title;
+      s.appendChild(h);
+      if (typeof contentEl === 'string') {
+        const p = document.createElement('p');
+        p.style.margin = 0;
+        p.textContent = contentEl;
+        s.appendChild(p);
+      } else if (contentEl) {
+        s.appendChild(contentEl);
+      }
+      return s;
+    }
+
+    // -------- Building fields --------
+    function renderBuildingFields(body) {
+      // Typology: single-pick chips
+      body.appendChild(section('Typology', buildChipPicker(TYPOLOGY, 'typology', false)));
+
+      // Concepts: multi-select chips
+      body.appendChild(section('Concepts (multi)', buildChipPicker(
+        CONCEPTS.map(c => c.label), 'concepts', true, CONCEPTS
+      )));
+    }
+
+    // -------- Element fields --------
+    function renderElementFields(body) {
+      const wrap = document.createElement('div');
+      Object.entries(ELEMENT_GROUPS).forEach(([group, items]) => {
+        const g = document.createElement('div');
+        g.className = 'chip-group';
+        g.innerHTML = `<p class="chip-group-label">${group}</p>`;
+        const row = buildChipPickerRow(items, 'element_name', false);
+        g.appendChild(row);
+        wrap.appendChild(g);
+      });
+      body.appendChild(section('Element', wrap));
+
+      body.appendChild(section('Material', buildChipPicker(MATERIALS, 'material', false)));
+    }
+
+    // -------- Graphic fields --------
+    function renderGraphicFields(body) {
+      // Kind
+      body.appendChild(section(
+        'Kind',
+        buildChipPicker(GRAPHIC_KINDS.map(k => k.label), 'graphic_kind', false, GRAPHIC_KINDS)
+      ));
+
+      const kind = currentDetailRecord.tags_human.graphic_kind;
+
+      if (kind === 'artwork') {
+        body.appendChild(renderArtworkDetailSection());
+      } else if (kind === 'book') {
+        body.appendChild(buildTextFieldsSection('Book', [
+          { field: 'title', label: 'Title' },
+          { field: 'creator', label: 'Author' },
+        ]));
+      } else if (kind === 'drawing') {
+        body.appendChild(buildTextFieldsSection('Drawing', [
+          { field: 'creator', label: 'Creator' },
+          { field: 'title', label: 'Title' },
+        ]));
+      } else if (kind === 'product') {
+        body.appendChild(buildTextFieldsSection('Product', [
+          { field: 'brand', label: 'Brand' },
+          { field: 'model', label: 'Model' },
+          { field: 'source', label: 'Source' },
+        ]));
+      } else if (kind === 'contact') {
+        body.appendChild(buildTextFieldsSection('Contact', [
+          { field: 'contact_name', label: 'Name' },
+          { field: 'contact_company', label: 'Company' },
+        ]));
+      }
+    }
+
+    function renderArtworkDetailSection() {
+      const s = document.createElement('div');
+      s.className = 'section';
+
+      const title = document.createElement('p');
+      title.className = 'section-title';
+      title.textContent = 'Artwork';
+      s.appendChild(title);
+
+      // Label photo row
+      const labelRow = document.createElement('div');
+      const rec = currentDetailRecord;
+      if (rec.label_blob) {
+        const box = document.createElement('div');
+        box.className = 'label-photo-box';
+        const img = document.createElement('img');
+        const url = URL.createObjectURL(rec.label_blob);
+        objectUrls.push(url);
+        img.src = url;
+        box.appendChild(img);
+        const meta = document.createElement('div');
+        meta.className = 'label-meta';
+        meta.textContent = 'Label photo';
+        box.appendChild(meta);
+        const rm = document.createElement('button');
+        rm.className = 'label-remove';
+        rm.textContent = 'Remove';
+        rm.addEventListener('click', async () => {
+          rec.label_blob = null;
+          await saveDetailRecord();
+          renderDetail();
+        });
+        box.appendChild(rm);
+        labelRow.appendChild(box);
+      } else {
+        const btn = document.createElement('button');
+        btn.className = 'btn-secondary';
+        btn.style.width = '100%';
+        btn.style.padding = '0.75rem';
+        btn.style.borderRadius = '10px';
+        btn.textContent = '+ Add label photo';
+        btn.addEventListener('click', () => {
+          labelInputTarget = 'detail';
+          document.getElementById('label-input').click();
+        });
+        labelRow.appendChild(btn);
+      }
+      s.appendChild(labelRow);
+
+      // Fields
+      [
+        { field: 'title', label: 'Title' },
+        { field: 'creator', label: 'Artist' },
+        { field: 'year', label: 'Year' },
+        { field: 'source', label: 'Source / Where' },
+      ].forEach(f => s.appendChild(buildTextInput(f.field, f.label)));
+
+      return s;
+    }
+
+    function buildTextFieldsSection(title, fields) {
+      const s = document.createElement('div');
+      s.className = 'section';
+      const h = document.createElement('p');
+      h.className = 'section-title';
+      h.textContent = title;
+      s.appendChild(h);
+      fields.forEach(f => s.appendChild(buildTextInput(f.field, f.label)));
+      return s;
+    }
+
+    function buildTextInput(field, label) {
+      const f = document.createElement('div');
+      f.className = 'form-field';
+      f.innerHTML = `<label class="form-label">${label}</label>`;
+      const input = document.createElement('input');
+      input.className = 'form-input';
+      input.type = 'text';
+      input.value = currentDetailRecord.tags_human[field] || '';
+      input.addEventListener('input', () => {
+        currentDetailRecord.tags_human[field] = input.value.trim() || null;
+      });
+      input.addEventListener('blur', saveDetailRecord);
+      f.appendChild(input);
+      return f;
+    }
+
+    // -------- Universal: Project --------
+    function renderProjectField(body) {
+      const s = document.createElement('div');
+      s.className = 'section';
+      const h = document.createElement('p');
+      h.className = 'section-title';
+      h.textContent = 'Project';
+      s.appendChild(h);
+      s.appendChild(buildTextInput('project', 'Project name (leave blank for none)'));
+      body.appendChild(s);
+    }
+
+    // -------- Universal: Visual --------
+    function renderVisualField(body) {
+      body.appendChild(section('Visual character (multi)', buildChipPicker(VISUAL, 'visual', true)));
+    }
+
+    // -------- Universal: Keywords --------
+    function renderKeywordsField(body) {
+      const s = document.createElement('div');
+      s.className = 'section';
+      const h = document.createElement('p');
+      h.className = 'section-title';
+      h.textContent = 'Keywords';
+      s.appendChild(h);
+
+      const list = document.createElement('div');
+      list.className = 'keyword-list';
+      s.appendChild(list);
+
+      const rec = currentDetailRecord;
+      (rec.tags_human.keywords || []).forEach((kw, idx) => {
+        const tag = document.createElement('span');
+        tag.className = 'keyword-tag';
+        tag.textContent = kw;
+        const x = document.createElement('span');
+        x.className = 'remove';
+        x.textContent = '×';
+        x.addEventListener('click', async () => {
+          rec.tags_human.keywords.splice(idx, 1);
+          await saveDetailRecord();
+          renderDetail();
+        });
+        tag.appendChild(x);
+        list.appendChild(tag);
+      });
+
+      const inputRow = document.createElement('div');
+      inputRow.style.display = 'flex';
+      inputRow.style.gap = '0.35rem';
+      inputRow.style.marginTop = '0.3rem';
+
+      const inp = document.createElement('input');
+      inp.className = 'keyword-input';
+      inp.placeholder = 'Add keyword…';
+      inp.addEventListener('keydown', async (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          const kw = inp.value.trim().toLowerCase();
+          if (!kw) return;
+          if (!rec.tags_human.keywords) rec.tags_human.keywords = [];
+          if (!rec.tags_human.keywords.includes(kw)) {
+            rec.tags_human.keywords.push(kw);
+            await saveDetailRecord();
+            renderDetail();
+          } else {
+            inp.value = '';
+          }
+        }
+      });
+      inputRow.appendChild(inp);
+      s.appendChild(inputRow);
+
+      body.appendChild(s);
+    }
+
+    // -------- Helpers: generic chip-picker  --------
+    function buildChipPicker(items, field, multi, meta) {
+      return buildChipPickerRow(items, field, multi, meta);
+    }
+
+    function buildChipPickerRow(items, field, multi, meta) {
+      const row = document.createElement('div');
+      row.className = 'chip-row';
+      const rec = currentDetailRecord;
+
+      items.forEach(label => {
+        // For concepts/graphic-kinds, store the .id; for others, the label itself
+        const val = meta ? (meta.find(m => m.label === label)?.id || label) : label;
+
+        const chip = document.createElement('button');
+        chip.className = 'chip';
+        chip.textContent = label;
+
+        let isActive;
+        if (multi) {
+          isActive = (rec.tags_human[field] || []).includes(val);
+        } else {
+          isActive = rec.tags_human[field] === val;
+        }
+        if (isActive) chip.classList.add('active');
+
+        chip.addEventListener('click', async () => {
+          if (multi) {
+            if (!rec.tags_human[field]) rec.tags_human[field] = [];
+            const arr = rec.tags_human[field];
+            const idx = arr.indexOf(val);
+            if (idx === -1) arr.push(val);
+            else arr.splice(idx, 1);
+          } else {
+            rec.tags_human[field] = rec.tags_human[field] === val ? null : val;
+          }
+          await saveDetailRecord();
+          renderDetail();
+        });
+
+        row.appendChild(chip);
+      });
+      return row;
+    }
+
+    async function saveDetailRecord() {
+      if (!currentDetailRecord) return;
+      currentDetailRecord.search_text = buildSearchText(currentDetailRecord);
+      await dbPut(currentDetailRecord);
+    }
+
+    // Delete button
+    document.getElementById('delete-btn').addEventListener('click', async () => {
+      if (currentDetailId == null) return;
+      if (!confirm('Delete this photo?')) return;
+      await dbDelete(currentDetailId);
+      currentDetailId = null;
+      currentDetailRecord = null;
+      showView('gallery');
+      await renderGallery();
+      toast('Deleted');
+    });
+
+    // ============================================================
+    // TOAST
+    // ============================================================
+    let toastTimer = null;
+    function toast(msg) {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => el.classList.remove('show'), 1500);
+    }
+  </script>
+</body>
+</html>
