@@ -63,7 +63,7 @@
       margin: 0;
     }
 
-    label.take-photo {
+    .take-photo {
       display: block;
       width: 100%;
       max-width: 320px;
@@ -77,7 +77,23 @@
       cursor: pointer;
       user-select: none;
     }
-    label.take-photo:active { background: #ccc; }
+    .take-photo:active { background: #ccc; }
+
+    .take-photo.secondary {
+      background: transparent;
+      color: #eee;
+      border: 1px solid #444;
+    }
+    .take-photo.secondary:active { background: #222; }
+
+    .home-hint {
+      color: #666;
+      font-size: 0.78rem;
+      margin: -1.25rem 0 0;
+      text-align: center;
+      max-width: 280px;
+      line-height: 1.35;
+    }
 
     .link-button {
       padding: 0.75rem 1.25rem;
@@ -446,8 +462,44 @@
   <!-- ============ HOME ============ -->
   <section id="view-home" class="view active">
     <h1>archi-archive</h1>
-    <label class="take-photo" for="camera-input">Take photo</label>
+    <button class="take-photo" id="home-reference">Reference</button>
+    <p class="home-hint">random buildings, inspirations, artworks</p>
+    <button class="take-photo secondary" id="home-project">Project</button>
+    <p class="home-hint">on-site photos, client meetings, study material</p>
     <button class="link-button" id="open-gallery">Browse archive</button>
+  </section>
+
+  <!-- ============ PROJECT PICKER ============ -->
+  <section id="view-project" class="view">
+    <header class="gallery-header">
+      <button class="back-btn" data-goto="home">&larr;</button>
+      <span class="meta-date">Project</span>
+    </header>
+    <div style="padding: 0 1rem; display:flex; flex-direction:column; gap:0.75rem;">
+      <p class="step-question" style="margin-top:0.5rem;">Which project?</p>
+      <div id="project-chips" class="chip-row"></div>
+      <div class="form-field" style="margin-bottom:0;">
+        <label class="form-label">New project</label>
+        <input id="new-project-input" class="form-input" type="text" placeholder="e.g. Villa H, Client A, Site visit">
+      </div>
+      <div class="capture-actions">
+        <button class="btn-primary" id="project-start">Start</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ PROJECT SESSION ============ -->
+  <section id="view-project-session" class="view">
+    <div style="padding: 2rem 1rem; flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1.25rem; text-align:center;">
+      <p class="step-question" style="margin:0;">Project</p>
+      <p id="project-session-name" style="margin:0; font-size:1.2rem; font-weight:600;"></p>
+      <img id="project-session-thumb" style="max-width:70%; max-height:35vh; object-fit:contain; border-radius:12px; background:#222;" alt="">
+      <p style="color:#888; font-size:0.85rem; margin:0;">Saved.</p>
+      <div class="capture-actions" style="width:100%; max-width:320px;">
+        <button class="btn-secondary" id="project-session-done">Done</button>
+        <button class="btn-primary" id="project-session-another">Take another</button>
+      </div>
+    </div>
   </section>
 
   <!-- ============ CAPTURE ============ -->
@@ -560,6 +612,11 @@
 
     // For label-input: context-dependent behaviour
     let labelInputTarget = null;  // 'capture' | 'detail'
+
+    // Home-path state: which mode the next camera tap is in
+    let captureMode = 'reference';  // 'reference' | 'project'
+    let activeProject = null;
+    let projectThumbUrl = null;
 
     // ============================================================
     // INDEXEDDB
@@ -674,7 +731,13 @@
 
     cameraInput.addEventListener('change', (event) => {
       const file = event.target.files[0];
+      event.target.value = '';
       if (!file) return;
+
+      if (captureMode === 'project') {
+        savePhotoToProject(file);
+        return;
+      }
 
       pendingBlob = file;
       pendingLabelBlob = null;
@@ -684,8 +747,18 @@
       capturePreview.src = URL.createObjectURL(file);
       showView('capture');
       renderCaptureStep();
+    });
 
-      event.target.value = '';
+    // Home: Reference button opens camera directly in reference mode
+    document.getElementById('home-reference').addEventListener('click', () => {
+      captureMode = 'reference';
+      cameraInput.click();
+    });
+
+    // Home: Project button goes to picker (camera opens after project is chosen)
+    document.getElementById('home-project').addEventListener('click', async () => {
+      await renderProjectPicker();
+      showView('project');
     });
 
     document.getElementById('capture-cancel').addEventListener('click', () => {
@@ -956,6 +1029,118 @@
     }
 
     // ============================================================
+    // PROJECT MODE
+    // ============================================================
+    async function getProjectNames() {
+      const all = await dbGetAll();
+      const seen = new Map();
+      all.sort((a, b) => b.created_at - a.created_at).forEach(r => {
+        const p = r.tags_human && r.tags_human.project;
+        if (p && !seen.has(p)) seen.set(p, r.created_at);
+      });
+      return [...seen.keys()];
+    }
+
+    async function renderProjectPicker() {
+      const projects = await getProjectNames();
+      const chips = document.getElementById('project-chips');
+      const input = document.getElementById('new-project-input');
+
+      chips.innerHTML = '';
+      projects.forEach(p => {
+        const c = document.createElement('button');
+        c.className = 'chip';
+        c.textContent = p;
+        c.addEventListener('click', () => {
+          chips.querySelectorAll('.chip').forEach(x => x.classList.remove('active'));
+          c.classList.add('active');
+          input.value = p;
+          updateStartButton();
+        });
+        chips.appendChild(c);
+      });
+
+      input.value = '';
+      activeProject = null;
+      updateStartButton();
+    }
+
+    function updateStartButton() {
+      const name = document.getElementById('new-project-input').value.trim();
+      const btn = document.getElementById('project-start');
+      btn.disabled = !name;
+      btn.style.opacity = name ? '1' : '0.4';
+    }
+
+    document.getElementById('new-project-input').addEventListener('input', () => {
+      // Typing into the input clears any chip selection
+      document.querySelectorAll('#project-chips .chip').forEach(x => x.classList.remove('active'));
+      updateStartButton();
+    });
+
+    document.getElementById('project-start').addEventListener('click', async () => {
+      const raw = document.getElementById('new-project-input').value.trim();
+      if (!raw) return;
+      const existing = await getProjectNames();
+      const match = existing.find(p => p.toLowerCase() === raw.toLowerCase());
+      activeProject = match || raw;
+      captureMode = 'project';
+      cameraInput.click();
+    });
+
+    async function savePhotoToProject(file) {
+      const record = {
+        blob: file,
+        label_blob: null,
+        created_at: Date.now(),
+        tags_human: {
+          type: null,
+          typology: null,
+          concepts: [],
+          element_name: null,
+          material: null,
+          graphic_kind: null,
+          title: null,
+          creator: null,
+          year: null,
+          source: null,
+          brand: null,
+          model: null,
+          contact_name: null,
+          contact_company: null,
+          project: activeProject,
+          visual: [],
+          keywords: [],
+        },
+        tags_machine: {},
+      };
+      record.search_text = buildSearchText(record);
+      await dbAdd(record);
+
+      if (projectThumbUrl) URL.revokeObjectURL(projectThumbUrl);
+      projectThumbUrl = URL.createObjectURL(file);
+      document.getElementById('project-session-thumb').src = projectThumbUrl;
+      document.getElementById('project-session-name').textContent = activeProject;
+      showView('project-session');
+      toast('Saved to ' + activeProject);
+    }
+
+    document.getElementById('project-session-another').addEventListener('click', () => {
+      // captureMode and activeProject remain; reopen camera
+      cameraInput.click();
+    });
+
+    document.getElementById('project-session-done').addEventListener('click', () => {
+      activeProject = null;
+      captureMode = 'reference';
+      if (projectThumbUrl) {
+        URL.revokeObjectURL(projectThumbUrl);
+        projectThumbUrl = null;
+      }
+      showView('home');
+    });
+
+    // ============================================================
     // GALLERY
     // ============================================================
     document.getElementById('open-gallery').addEventListener('click', async () => {
@@ -1046,8 +1231,10 @@
 
       const type = rec.tags_human.type;
 
-      // TYPE header
-      body.appendChild(section('Type', TYPES.find(t => t.id === type)?.label || '—'));
+      // TYPE picker — editable so untagged (project) photos can be classified later
+      body.appendChild(section('Type', buildChipPicker(
+        TYPES.map(t => t.label), 'type', false, TYPES
+      )));
 
       if (type === 'building') renderBuildingFields(body);
       if (type === 'element')  renderElementFields(body);
