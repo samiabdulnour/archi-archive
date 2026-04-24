@@ -518,7 +518,7 @@
     <div class="type-filter-row" id="type-filter-row">
       <button class="chip active" data-type-filter="all">All</button>
       <button class="chip" data-type-filter="building">Building</button>
-      <button class="chip" data-type-filter="element">Element</button>
+      <button class="chip" data-type-filter="element">Detail</button>
       <button class="chip" data-type-filter="graphic">Graphic</button>
     </div>
 
@@ -552,7 +552,7 @@
     // ============================================================
     const TYPES = [
       { id: 'building', label: 'Building', hint: 'A whole building or space' },
-      { id: 'element',  label: 'Element',  hint: 'A part or detail (railing, stair, tile...)' },
+      { id: 'element',  label: 'Detail',   hint: 'A part or detail (railing, stair, tile...)' },
       { id: 'graphic',  label: 'Graphic',  hint: 'Flat: artwork, book, drawing, product, contact...' },
     ];
 
@@ -741,7 +741,7 @@
       }
 
       pendingBlob = file;
-      captureDraft = { concepts: [], materials: [] };
+      captureDraft = { type: 'building', concepts: [], materials: [] };
       captureStep = 'review';
       captureProjectList = await getProjectNames();
 
@@ -783,8 +783,22 @@
     }
 
     // Single-page tagger shown after a Reference photo.
-    // Four sections: Typology (single), Concept (multi), Materiality (multi), Project (single).
+    // Sections: Type (single), Typology (single), Concept (multi), Materiality (multi), Project (single).
     function renderReviewStep(c) {
+      // --- Type (single-select: Building / Detail / Graphic) ---
+      c.appendChild(buildReviewSection('Type', row => {
+        TYPES.forEach(t => {
+          const chip = makeChip(t.label);
+          if (captureDraft.type === t.id) chip.classList.add('active');
+          chip.addEventListener('click', () => {
+            row.querySelectorAll('.chip').forEach(x => x.classList.remove('active'));
+            chip.classList.add('active');
+            captureDraft.type = t.id;
+          });
+          row.appendChild(chip);
+        });
+      }));
+
       // --- Typology (single-select) ---
       c.appendChild(buildReviewSection('Typology', row => {
         TYPOLOGY.forEach(t => {
@@ -914,7 +928,7 @@
         label_blob: null,
         created_at: Date.now(),
         tags_human: {
-          type: 'building',
+          type: t.type || 'building',
           typology: t.typology || null,
           concepts: t.concepts || [],
           element_name: null,
