@@ -523,6 +523,8 @@
       <button class="chip" data-type-filter="graphic">Graphic</button>
     </div>
 
+    <div class="type-filter-row" id="project-filter-row" hidden></div>
+
     <div id="count"></div>
     <div id="photo-grid" class="photo-grid"></div>
     <p id="empty" class="empty-state" hidden>No photos yet.</p>
@@ -605,7 +607,7 @@
     let captureDraft = null;      // tags_human being built during capture
     let captureStep = null;       // 'type' | 'primary-building' | 'primary-element' | 'primary-graphic' | 'artwork-details'
 
-    let activeFilters = { type: 'all', search: '' };
+    let activeFilters = { type: 'all', search: '', project: null };
     let currentDetailId = null;
     let currentDetailRecord = null;
     let objectUrls = [];
@@ -1168,10 +1170,13 @@
       objectUrls = [];
 
       const all = await dbGetAll();
+      renderProjectFilters(all);
+
       const queryWords = activeFilters.search.split(/\s+/).filter(Boolean);
 
       const filtered = all.filter(rec => {
         if (activeFilters.type !== 'all' && rec.tags_human.type !== activeFilters.type) return false;
+        if (activeFilters.project && rec.tags_human.project !== activeFilters.project) return false;
         if (queryWords.length) {
           const text = rec.search_text || buildSearchText(rec);
           return queryWords.every(w => text.includes(w));
@@ -1201,6 +1206,39 @@
       document.getElementById('count').textContent =
         `${filtered.length}${all.length !== filtered.length ? ' of ' + all.length : ''} ${filtered.length === 1 ? 'photo' : 'photos'}`;
       document.getElementById('empty').hidden = all.length !== 0;
+    }
+
+    function renderProjectFilters(all) {
+      const row = document.getElementById('project-filter-row');
+
+      // Count photos per project, ordered by most-recently-used project first.
+      const counts = new Map();
+      all.slice().sort((a, b) => b.created_at - a.created_at).forEach(r => {
+        const p = r.tags_human && r.tags_human.project;
+        if (p) counts.set(p, (counts.get(p) || 0) + 1);
+      });
+
+      if (counts.size === 0) {
+        row.hidden = true;
+        row.innerHTML = '';
+        // Clear stale project filter if the last project just got deleted
+        if (activeFilters.project) activeFilters.project = null;
+        return;
+      }
+
+      row.hidden = false;
+      row.innerHTML = '';
+      counts.forEach((count, name) => {
+        const chip = document.createElement('button');
+        chip.className = 'chip';
+        chip.textContent = `${name} (${count})`;
+        if (activeFilters.project === name) chip.classList.add('active');
+        chip.addEventListener('click', () => {
+          activeFilters.project = (activeFilters.project === name) ? null : name;
+          renderGallery();
+        });
+        row.appendChild(chip);
+      });
     }
 
     // ============================================================
