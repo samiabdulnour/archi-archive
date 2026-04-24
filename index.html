@@ -106,7 +106,7 @@
     .link-button:active { background: #222; }
 
     /* ============ CAPTURE ============ */
-    #view-capture { padding: 1rem; gap: 1rem; }
+    #view-capture { padding: 0 0 1.5rem; }
 
     #capture-preview {
       width: 100%;
@@ -264,12 +264,6 @@
       padding: 0.35rem 0.6rem;
     }
 
-    #capture-cancel {
-      color: #888;
-      padding: 0.75rem;
-      font-size: 0.9rem;
-      margin-top: auto;
-    }
 
     /* ============ GALLERY ============ */
     #view-gallery { padding: 0 0 2rem; }
@@ -504,9 +498,14 @@
 
   <!-- ============ CAPTURE ============ -->
   <section id="view-capture" class="view">
-    <img id="capture-preview" alt="">
-    <div id="capture-step-container"></div>
-    <button id="capture-cancel">Cancel</button>
+    <header class="gallery-header">
+      <button class="back-btn" id="capture-back">&larr;</button>
+      <span class="meta-date" id="capture-step-label"></span>
+    </header>
+    <div style="padding: 0 1rem; display:flex; flex-direction:column; gap:1rem;">
+      <img id="capture-preview" alt="">
+      <div id="capture-step-container"></div>
+    </div>
   </section>
 
   <!-- ============ GALLERY ============ -->
@@ -763,9 +762,33 @@
       showView('project');
     });
 
-    document.getElementById('capture-cancel').addEventListener('click', () => {
-      resetCapture();
-      showView('home');
+    // Back-button: one step back; at the first step, discard and go home.
+    const STEP_BACK = {
+      'type': null,
+      'primary-building': 'type',
+      'primary-building-concepts': 'primary-building',
+      'primary-element': 'type',
+      'primary-graphic': 'type',
+      'artwork-details': 'primary-graphic',
+    };
+    const STEP_LABEL = {
+      'type': 'What is this?',
+      'primary-building': 'Typology',
+      'primary-building-concepts': 'Concepts',
+      'primary-element': 'Element',
+      'primary-graphic': 'Graphic',
+      'artwork-details': 'Artwork',
+    };
+
+    document.getElementById('capture-back').addEventListener('click', () => {
+      const prev = STEP_BACK[captureStep];
+      if (prev == null) {
+        resetCapture();
+        showView('home');
+        return;
+      }
+      captureStep = prev;
+      renderCaptureStep();
     });
 
     function resetCapture() {
@@ -779,10 +802,14 @@
       const c = stepContainer;
       c.innerHTML = '';
 
+      document.getElementById('capture-step-label').textContent = STEP_LABEL[captureStep] || '';
+
       if (captureStep === 'type') {
         renderTypeStep(c);
       } else if (captureStep === 'primary-building') {
         renderTypologyStep(c);
+      } else if (captureStep === 'primary-building-concepts') {
+        renderBuildingConceptsStep(c);
       } else if (captureStep === 'primary-element') {
         renderElementStep(c);
       } else if (captureStep === 'primary-graphic') {
@@ -820,14 +847,51 @@
         const chip = document.createElement('button');
         chip.className = 'chip';
         chip.textContent = t;
+        if (captureDraft.typology === t) chip.classList.add('active');
         chip.addEventListener('click', () => {
           captureDraft.typology = t;
-          finishCapture();
+          captureStep = 'primary-building-concepts';
+          renderCaptureStep();
         });
         row.appendChild(chip);
       });
       c.appendChild(row);
       c.appendChild(skipButton());
+    }
+
+    function renderBuildingConceptsStep(c) {
+      c.innerHTML = '<p class="step-question">Concepts (tap any that apply)</p>';
+      if (!captureDraft.concepts) captureDraft.concepts = [];
+
+      const row = document.createElement('div');
+      row.className = 'chip-row';
+      CONCEPTS.forEach(concept => {
+        const chip = document.createElement('button');
+        chip.className = 'chip';
+        chip.textContent = concept.label;
+        if (captureDraft.concepts.includes(concept.id)) chip.classList.add('active');
+        chip.addEventListener('click', () => {
+          const idx = captureDraft.concepts.indexOf(concept.id);
+          if (idx === -1) captureDraft.concepts.push(concept.id);
+          else captureDraft.concepts.splice(idx, 1);
+          chip.classList.toggle('active');
+        });
+        row.appendChild(chip);
+      });
+      c.appendChild(row);
+
+      const actions = document.createElement('div');
+      actions.className = 'capture-actions';
+      actions.innerHTML = `
+        <button class="btn-secondary" id="concepts-skip">Skip</button>
+        <button class="btn-primary" id="concepts-done">Done</button>
+      `;
+      c.appendChild(actions);
+      document.getElementById('concepts-skip').addEventListener('click', () => {
+        captureDraft.concepts = [];
+        finishCapture();
+      });
+      document.getElementById('concepts-done').addEventListener('click', finishCapture);
     }
 
     function renderElementStep(c) {
@@ -1004,7 +1068,7 @@
         tags_human: {
           type: t.type,
           typology: t.typology || null,
-          concepts: [],
+          concepts: t.concepts || [],
           element_name: t.element_name || null,
           material: null,
           graphic_kind: t.graphic_kind || null,
