@@ -641,6 +641,31 @@
     let activeProject = null;
     let projectThumbUrl = null;
 
+    // Location captured async between tapping the camera button and saving.
+    let pendingLocation = null;     // { lat, lng, accuracy } or null
+
+    function startLocationCapture() {
+      pendingLocation = null;
+      if (!navigator.geolocation) return;
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          pendingLocation = {
+            lat: pos.coords.latitude,
+            lng: pos.coords.longitude,
+            accuracy: pos.coords.accuracy,
+          };
+        },
+        () => { /* denied or failed; save without location */ },
+        { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 }
+      );
+    }
+
+    function takePendingLocation() {
+      const loc = pendingLocation;
+      pendingLocation = null;
+      return loc;
+    }
+
     // ============================================================
     // INDEXEDDB
     // ============================================================
@@ -777,6 +802,7 @@
     // Home: Reference button opens camera directly in reference mode
     document.getElementById('home-reference').addEventListener('click', () => {
       captureMode = 'reference';
+      startLocationCapture();
       cameraInput.click();
     });
 
@@ -891,10 +917,10 @@
       'primary-building': 'Typology',
       'primary-building-concepts': 'Concepts',
       'primary-building-materiality': 'Materiality',
+      'primary-building-meta': 'Architect & year',
       'primary-building-note': 'Note',
       'primary-element': 'Element',
       'primary-element-materiality': 'Materiality',
-      'primary-element-concepts': 'Concepts',
       'primary-element-note': 'Note',
       'primary-graphic': 'Graphic',
       'graphic-details': 'Details',
@@ -939,14 +965,14 @@
         renderBuildingConceptsStep(c);
       } else if (captureStep === 'primary-building-materiality') {
         renderBuildingMaterialityStep(c);
+      } else if (captureStep === 'primary-building-meta') {
+        renderBuildingMetaStep(c);
       } else if (captureStep === 'primary-building-note') {
         renderNoteStep(c);
       } else if (captureStep === 'primary-element') {
         renderElementStep(c);
       } else if (captureStep === 'primary-element-materiality') {
         renderElementMaterialityStep(c);
-      } else if (captureStep === 'primary-element-concepts') {
-        renderElementConceptsStep(c);
       } else if (captureStep === 'primary-element-note') {
         renderNoteStep(c);
       } else if (captureStep === 'primary-graphic') {
@@ -1030,6 +1056,31 @@
 
     function renderBuildingMaterialityStep(c) {
       renderMaterialityChips(c);
+      addStepActions(c, 'Skip rest', finishCapture, 'Next', () => setCaptureStep('primary-building-meta'));
+    }
+
+    function renderBuildingMetaStep(c) {
+      c.innerHTML = '<p class="step-question">Architect &amp; year (optional)</p>';
+
+      [
+        { field: 'creator', label: 'Architect', placeholder: 'e.g. Le Corbusier' },
+        { field: 'year',    label: 'Year',      placeholder: 'e.g. 1952' },
+      ].forEach(({ field, label, placeholder }) => {
+        const f = document.createElement('div');
+        f.className = 'form-field';
+        f.innerHTML = `<label class="form-label">${label}</label>`;
+        const input = document.createElement('input');
+        input.className = 'form-input';
+        input.type = 'text';
+        input.placeholder = placeholder;
+        input.value = captureDraft[field] || '';
+        input.addEventListener('input', () => {
+          captureDraft[field] = input.value.trim() || null;
+        });
+        f.appendChild(input);
+        c.appendChild(f);
+      });
+
       addStepActions(c, 'Skip rest', finishCapture, 'Next', () => setCaptureStep('primary-building-note'));
     }
 
@@ -1142,11 +1193,6 @@
 
     function renderElementMaterialityStep(c) {
       renderMaterialityChips(c);
-      addStepActions(c, 'Skip rest', finishCapture, 'Next', () => setCaptureStep('primary-element-concepts'));
-    }
-
-    function renderElementConceptsStep(c) {
-      renderConceptsChips(c);
       addStepActions(c, 'Skip rest', finishCapture, 'Next', () => setCaptureStep('primary-element-note'));
     }
 
@@ -1313,6 +1359,7 @@
         blob: pendingBlob,
         label_blob: pendingLabelBlob || null,
         created_at: Date.now(),
+        location: takePendingLocation(),
         tags_human: {
           type: t.type,
           typology: t.typology || null,
@@ -1401,6 +1448,7 @@
       const match = existing.find(p => p.toLowerCase() === raw.toLowerCase());
       activeProject = match || raw;
       captureMode = 'project';
+      startLocationCapture();
       cameraInput.click();
     });
 
@@ -1409,6 +1457,7 @@
         blob: file,
         label_blob: null,
         created_at: Date.now(),
+        location: takePendingLocation(),
         tags_human: {
           type: null,
           typology: null,
@@ -1443,6 +1492,7 @@
 
     document.getElementById('project-session-another').addEventListener('click', () => {
       // captureMode and activeProject remain; reopen camera
+      startLocationCapture();
       cameraInput.click();
     });
 
@@ -1576,7 +1626,23 @@
       objectUrls.push(url);
       img.src = url;
 
-      document.getElementById('detail-date').textContent = new Date(rec.created_at).toLocaleString();
+      const dateEl = document.getElementById('detail-date');
+      dateEl.innerHTML = '';
+      dateEl.appendChild(document.createTextNode(new Date(rec.created_at).toLocaleString()));
+      if (rec.location && rec.location.lat != null && rec.location.lng != null) {
+        const sep = document.createElement('span');
+        sep.textContent = ' · ';
+        sep.style.color = '#555';
+        dateEl.appendChild(sep);
+        const link = document.createElement('a');
+        link.href = `https://maps.apple.com/?q=${rec.location.lat},${rec.location.lng}`;
+        link.target = '_blank';
+        link.rel = 'noopener';
+        link.style.color = '#aaa';
+        link.style.textDecoration = 'none';
+        link.textContent = `${rec.location.lat.toFixed(4)}, ${rec.location.lng.toFixed(4)}`;
+        dateEl.appendChild(link);
+      }
 
       const body = document.getElementById('detail-body');
       body.innerHTML = '';
@@ -1629,6 +1695,12 @@
 
       // Materiality: multi-select chips
       body.appendChild(section('Materiality (multi)', buildChipPicker(MATERIALS, 'materials', true)));
+
+      // Architect & year text fields
+      body.appendChild(buildTextFieldsSection('Architect & year', [
+        { field: 'creator', label: 'Architect' },
+        { field: 'year',    label: 'Year' },
+      ]));
     }
 
     // -------- Element fields --------
@@ -1645,9 +1717,6 @@
       body.appendChild(section('Element', wrap));
 
       body.appendChild(section('Materiality (multi)', buildChipPicker(MATERIALS, 'materials', true)));
-      body.appendChild(section('Concepts (multi)', buildChipPicker(
-        CONCEPTS.map(c => c.label), 'concepts', true, CONCEPTS
-      )));
     }
 
     // -------- Graphic fields --------
