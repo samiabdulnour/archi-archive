@@ -625,7 +625,8 @@
     let pendingBlob = null;       // primary photo during capture
     let pendingLabelBlob = null;  // optional label photo during capture
     let captureDraft = null;      // tags_human being built during capture
-    let captureStep = null;       // 'type' | 'primary-building' | 'primary-element' | 'primary-graphic' | 'artwork-details'
+    let captureStep = null;       // current step name
+    let captureBackStack = [];    // history of steps visited (for back button)
 
     let activeFilters = { type: 'all', search: '', project: null };
     let currentDetailId = null;
@@ -884,17 +885,7 @@
       await renderSettings();
     }
 
-    // Back-button: one step back; at the first step, discard and go home.
-    const STEP_BACK = {
-      'type': null,
-      'primary-building': 'type',
-      'primary-building-concepts': 'primary-building',
-      'primary-building-materiality': 'primary-building-concepts',
-      'primary-building-note': 'primary-building-materiality',
-      'primary-element': 'type',
-      'primary-graphic': 'type',
-      'artwork-details': 'primary-graphic',
-    };
+    // Back-button: pops the history stack; if empty, discards and goes home.
     const STEP_LABEL = {
       'type': 'What is this?',
       'primary-building': 'Typology',
@@ -902,18 +893,27 @@
       'primary-building-materiality': 'Materiality',
       'primary-building-note': 'Note',
       'primary-element': 'Element',
+      'primary-element-materiality': 'Materiality',
+      'primary-element-concepts': 'Concepts',
+      'primary-element-note': 'Note',
       'primary-graphic': 'Graphic',
-      'artwork-details': 'Artwork',
+      'graphic-details': 'Details',
+      'primary-graphic-note': 'Note',
     };
 
+    function setCaptureStep(next) {
+      if (captureStep) captureBackStack.push(captureStep);
+      captureStep = next;
+      renderCaptureStep();
+    }
+
     document.getElementById('capture-back').addEventListener('click', () => {
-      const prev = STEP_BACK[captureStep];
-      if (prev == null) {
+      if (captureBackStack.length === 0) {
         resetCapture();
         showView('home');
         return;
       }
-      captureStep = prev;
+      captureStep = captureBackStack.pop();
       renderCaptureStep();
     });
 
@@ -922,6 +922,7 @@
       pendingLabelBlob = null;
       captureDraft = null;
       captureStep = null;
+      captureBackStack = [];
     }
 
     function renderCaptureStep() {
@@ -939,13 +940,21 @@
       } else if (captureStep === 'primary-building-materiality') {
         renderBuildingMaterialityStep(c);
       } else if (captureStep === 'primary-building-note') {
-        renderBuildingNoteStep(c);
+        renderNoteStep(c);
       } else if (captureStep === 'primary-element') {
         renderElementStep(c);
+      } else if (captureStep === 'primary-element-materiality') {
+        renderElementMaterialityStep(c);
+      } else if (captureStep === 'primary-element-concepts') {
+        renderElementConceptsStep(c);
+      } else if (captureStep === 'primary-element-note') {
+        renderNoteStep(c);
       } else if (captureStep === 'primary-graphic') {
         renderGraphicKindStep(c);
-      } else if (captureStep === 'artwork-details') {
-        renderArtworkDetailsStep(c);
+      } else if (captureStep === 'graphic-details') {
+        renderGraphicDetailsStep(c);
+      } else if (captureStep === 'primary-graphic-note') {
+        renderNoteStep(c);
       }
     }
 
@@ -959,10 +968,9 @@
         btn.innerHTML = `<strong>${t.label}</strong><span>${t.hint}</span>`;
         btn.addEventListener('click', () => {
           captureDraft.type = t.id;
-          if (t.id === 'building') captureStep = 'primary-building';
-          else if (t.id === 'element') captureStep = 'primary-element';
-          else captureStep = 'primary-graphic';
-          renderCaptureStep();
+          if (t.id === 'building') setCaptureStep('primary-building');
+          else if (t.id === 'element') setCaptureStep('primary-element');
+          else setCaptureStep('primary-graphic');
         });
         wrap.appendChild(btn);
       });
@@ -980,8 +988,7 @@
         if (captureDraft.typology === t) chip.classList.add('active');
         chip.addEventListener('click', () => {
           captureDraft.typology = t;
-          captureStep = 'primary-building-concepts';
-          renderCaptureStep();
+          setCaptureStep('primary-building-concepts');
         });
         row.appendChild(chip);
       });
@@ -1018,13 +1025,16 @@
       `;
       c.appendChild(actions);
       document.getElementById('concepts-skip').addEventListener('click', finishCapture);
-      document.getElementById('concepts-done').addEventListener('click', () => {
-        captureStep = 'primary-building-materiality';
-        renderCaptureStep();
-      });
+      document.getElementById('concepts-done').addEventListener('click', () => setCaptureStep('primary-building-materiality'));
     }
 
     function renderBuildingMaterialityStep(c) {
+      renderMaterialityChips(c);
+      addStepActions(c, 'Skip rest', finishCapture, 'Next', () => setCaptureStep('primary-building-note'));
+    }
+
+    // Generic Materiality multi-select chips
+    function renderMaterialityChips(c) {
       c.innerHTML = '<p class="step-question">Materiality (tap any that apply)</p>';
       if (!captureDraft.materials) captureDraft.materials = [];
 
@@ -1044,22 +1054,33 @@
         row.appendChild(chip);
       });
       c.appendChild(row);
-
-      const actions = document.createElement('div');
-      actions.className = 'capture-actions';
-      actions.innerHTML = `
-        <button class="btn-secondary" id="materiality-skip">Skip rest</button>
-        <button class="btn-primary" id="materiality-done">Next</button>
-      `;
-      c.appendChild(actions);
-      document.getElementById('materiality-skip').addEventListener('click', finishCapture);
-      document.getElementById('materiality-done').addEventListener('click', () => {
-        captureStep = 'primary-building-note';
-        renderCaptureStep();
-      });
     }
 
-    function renderBuildingNoteStep(c) {
+    // Generic Concepts multi-select chips
+    function renderConceptsChips(c) {
+      c.innerHTML = '<p class="step-question">Concepts (tap any that apply)</p>';
+      if (!captureDraft.concepts) captureDraft.concepts = [];
+
+      const row = document.createElement('div');
+      row.className = 'chip-row';
+      CONCEPTS.forEach(concept => {
+        const chip = document.createElement('button');
+        chip.className = 'chip';
+        chip.textContent = concept.label;
+        if (captureDraft.concepts.includes(concept.id)) chip.classList.add('active');
+        chip.addEventListener('click', () => {
+          const idx = captureDraft.concepts.indexOf(concept.id);
+          if (idx === -1) captureDraft.concepts.push(concept.id);
+          else captureDraft.concepts.splice(idx, 1);
+          chip.classList.toggle('active');
+        });
+        row.appendChild(chip);
+      });
+      c.appendChild(row);
+    }
+
+    // Generic Note step (used by Building, Element, Graphic flows)
+    function renderNoteStep(c) {
       c.innerHTML = '<p class="step-question">Personal note (optional)</p>';
 
       const f = document.createElement('div');
@@ -1075,18 +1096,23 @@
       f.appendChild(textarea);
       c.appendChild(f);
 
+      addStepActions(c, 'Skip', () => { captureDraft.note = null; finishCapture(); }, 'Save', finishCapture);
+    }
+
+    function addStepActions(c, leftLabel, leftFn, rightLabel, rightFn) {
       const actions = document.createElement('div');
       actions.className = 'capture-actions';
-      actions.innerHTML = `
-        <button class="btn-secondary" id="note-skip">Skip</button>
-        <button class="btn-primary" id="note-save">Save</button>
-      `;
+      const left = document.createElement('button');
+      left.className = 'btn-secondary';
+      left.textContent = leftLabel;
+      left.addEventListener('click', leftFn);
+      const right = document.createElement('button');
+      right.className = 'btn-primary';
+      right.textContent = rightLabel;
+      right.addEventListener('click', rightFn);
+      actions.appendChild(left);
+      actions.appendChild(right);
       c.appendChild(actions);
-      document.getElementById('note-skip').addEventListener('click', () => {
-        captureDraft.note = null;
-        finishCapture();
-      });
-      document.getElementById('note-save').addEventListener('click', finishCapture);
     }
 
     function renderElementStep(c) {
@@ -1101,9 +1127,10 @@
           const chip = document.createElement('button');
           chip.className = 'chip';
           chip.textContent = item;
+          if (captureDraft.element_name === item) chip.classList.add('active');
           chip.addEventListener('click', () => {
             captureDraft.element_name = item;
-            finishCapture();
+            setCaptureStep('primary-element-materiality');
           });
           row.appendChild(chip);
         });
@@ -1111,6 +1138,16 @@
         c.appendChild(g);
       });
       c.appendChild(skipButton());
+    }
+
+    function renderElementMaterialityStep(c) {
+      renderMaterialityChips(c);
+      addStepActions(c, 'Skip rest', finishCapture, 'Next', () => setCaptureStep('primary-element-concepts'));
+    }
+
+    function renderElementConceptsStep(c) {
+      renderConceptsChips(c);
+      addStepActions(c, 'Skip rest', finishCapture, 'Next', () => setCaptureStep('primary-element-note'));
     }
 
     function renderGraphicKindStep(c) {
@@ -1123,11 +1160,11 @@
         btn.innerHTML = `<strong>${k.label}</strong><span>${k.hint}</span>`;
         btn.addEventListener('click', () => {
           captureDraft.graphic_kind = k.id;
-          if (k.id === 'artwork') {
-            captureStep = 'artwork-details';
-            renderCaptureStep();
+          if (k.id === 'other') {
+            // No kind-specific fields for "other"; jump straight to the note.
+            setCaptureStep('primary-graphic-note');
           } else {
-            finishCapture();
+            setCaptureStep('graphic-details');
           }
         });
         wrap.appendChild(btn);
@@ -1135,39 +1172,64 @@
       c.appendChild(wrap);
     }
 
-    function renderArtworkDetailsStep(c) {
-      c.innerHTML = '<p class="step-question">Artwork details (optional)</p>';
+    // Field schema for the Graphic > Details step, keyed by graphic_kind.
+    const GRAPHIC_FIELDS = {
+      artwork: [
+        { field: 'title',   label: 'Title' },
+        { field: 'creator', label: 'Artist' },
+        { field: 'year',    label: 'Year' },
+        { field: 'source',  label: 'Source / Where' },
+      ],
+      book: [
+        { field: 'title',   label: 'Title' },
+        { field: 'creator', label: 'Author' },
+        { field: 'source',  label: 'Publisher / Library' },
+      ],
+      drawing: [
+        { field: 'title',   label: 'Title' },
+        { field: 'creator', label: 'Creator' },
+        { field: 'year',    label: 'Year' },
+      ],
+      product: [
+        { field: 'brand',  label: 'Brand' },
+        { field: 'model',  label: 'Model' },
+        { field: 'source', label: 'Source / Where' },
+      ],
+      contact: [
+        { field: 'contact_name',    label: 'Name' },
+        { field: 'contact_company', label: 'Company' },
+      ],
+    };
 
-      // Label photo area (if attached, show thumbnail; else show "Add label photo")
-      const labelArea = document.createElement('div');
-      labelArea.id = 'capture-label-area';
-      c.appendChild(labelArea);
-      renderCaptureLabelArea();
+    function renderGraphicDetailsStep(c) {
+      const kind = captureDraft.graphic_kind;
+      const kindLabel = (GRAPHIC_KINDS.find(k => k.id === kind) || { label: 'Details' }).label;
+      c.innerHTML = `<p class="step-question">${kindLabel} details (optional)</p>`;
 
-      ['title', 'creator', 'year', 'source'].forEach(field => {
+      // Label photo only for artwork (a photo of the museum label).
+      if (kind === 'artwork') {
+        const labelArea = document.createElement('div');
+        labelArea.id = 'capture-label-area';
+        c.appendChild(labelArea);
+        renderCaptureLabelArea();
+      }
+
+      (GRAPHIC_FIELDS[kind] || []).forEach(({ field, label }) => {
         const f = document.createElement('div');
         f.className = 'form-field';
-        f.innerHTML = `
-          <label class="form-label">${labelFor(field)}</label>
-          <input class="form-input" type="text" data-field="${field}">
-        `;
-        const input = f.querySelector('input');
+        f.innerHTML = `<label class="form-label">${label}</label>`;
+        const input = document.createElement('input');
+        input.className = 'form-input';
+        input.type = 'text';
         input.value = captureDraft[field] || '';
         input.addEventListener('input', () => {
           captureDraft[field] = input.value.trim() || null;
         });
+        f.appendChild(input);
         c.appendChild(f);
       });
 
-      const actions = document.createElement('div');
-      actions.className = 'capture-actions';
-      actions.innerHTML = `
-        <button class="btn-secondary" id="skip-artwork">Skip</button>
-        <button class="btn-primary" id="save-artwork">Save</button>
-      `;
-      c.appendChild(actions);
-      document.getElementById('skip-artwork').addEventListener('click', finishCapture);
-      document.getElementById('save-artwork').addEventListener('click', finishCapture);
+      addStepActions(c, 'Skip rest', finishCapture, 'Next', () => setCaptureStep('primary-graphic-note'));
     }
 
     function renderCaptureLabelArea() {
@@ -1222,15 +1284,6 @@
       return s;
     }
 
-    function labelFor(field) {
-      return ({
-        title: 'Title',
-        creator: 'Artist',
-        year: 'Year',
-        source: 'Source / Where',
-      })[field] || field;
-    }
-
     // ============================================================
     // LABEL-INPUT (shared by capture flow and detail view)
     // ============================================================
@@ -1272,10 +1325,10 @@
           creator: t.creator || null,
           year: t.year || null,
           source: t.source || null,
-          brand: null,
-          model: null,
-          contact_name: null,
-          contact_company: null,
+          brand: t.brand || null,
+          model: t.model || null,
+          contact_name: t.contact_name || null,
+          contact_company: t.contact_company || null,
           project: null,
           note: t.note || null,
           visual: [],
@@ -1591,7 +1644,10 @@
       });
       body.appendChild(section('Element', wrap));
 
-      body.appendChild(section('Material', buildChipPicker(MATERIALS, 'material', false)));
+      body.appendChild(section('Materiality (multi)', buildChipPicker(MATERIALS, 'materials', true)));
+      body.appendChild(section('Concepts (multi)', buildChipPicker(
+        CONCEPTS.map(c => c.label), 'concepts', true, CONCEPTS
+      )));
     }
 
     // -------- Graphic fields --------
