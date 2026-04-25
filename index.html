@@ -461,6 +461,27 @@
     <button class="take-photo secondary" id="home-project">Project</button>
     <p class="home-hint">on-site photos, client meetings, study material</p>
     <button class="link-button" id="open-gallery">Browse archive</button>
+    <button class="link-button" id="open-settings">Options</button>
+  </section>
+
+  <!-- ============ SETTINGS ============ -->
+  <section id="view-settings" class="view">
+    <header class="gallery-header">
+      <button class="back-btn" data-goto="home">&larr;</button>
+      <span class="meta-date">Options</span>
+    </header>
+    <div style="padding: 0 1rem; display:flex; flex-direction:column; gap:1rem;">
+      <div class="section">
+        <p class="section-title">Projects</p>
+        <div id="settings-projects-list"></div>
+      </div>
+      <div class="section">
+        <p class="section-title">Categories</p>
+        <p style="margin:0; color:#888; font-size:0.85rem; line-height:1.4;">
+          Custom typologies, concepts and materials are coming. Tell Claude how you'd like to edit them.
+        </p>
+      </div>
+    </div>
   </section>
 
   <!-- ============ PROJECT PICKER ============ -->
@@ -699,11 +720,13 @@
         t.type, t.typology,
         ...(t.concepts || []),
         t.element_name, t.material,
+        ...(t.materials || []),
         t.graphic_kind,
         t.title, t.creator, t.year, t.source,
         t.brand, t.model,
         t.contact_name, t.contact_company,
         t.project,
+        t.note,
         ...(t.visual || []),
         ...(t.keywords || []),
       ];
@@ -762,11 +785,112 @@
       showView('project');
     });
 
+    // Home: Options button opens the settings view
+    document.getElementById('open-settings').addEventListener('click', async () => {
+      await renderSettings();
+      showView('settings');
+    });
+
+    async function renderSettings() {
+      const list = document.getElementById('settings-projects-list');
+      list.innerHTML = '';
+
+      const all = await dbGetAll();
+      const counts = new Map();
+      all.slice().sort((a, b) => b.created_at - a.created_at).forEach(r => {
+        const p = r.tags_human && r.tags_human.project;
+        if (p) counts.set(p, (counts.get(p) || 0) + 1);
+      });
+
+      if (counts.size === 0) {
+        const p = document.createElement('p');
+        p.style.margin = 0;
+        p.style.color = '#888';
+        p.style.fontSize = '0.85rem';
+        p.textContent = 'No projects yet.';
+        list.appendChild(p);
+        return;
+      }
+
+      counts.forEach((count, name) => {
+        const row = document.createElement('div');
+        row.style.display = 'flex';
+        row.style.alignItems = 'center';
+        row.style.gap = '0.5rem';
+        row.style.padding = '0.6rem 0';
+        row.style.borderBottom = '1px solid #222';
+
+        const label = document.createElement('div');
+        label.style.flex = '1';
+        label.style.fontSize = '0.95rem';
+        label.innerHTML = `${name} <span style="color:#666; font-size:0.8rem;">(${count})</span>`;
+        row.appendChild(label);
+
+        const renameBtn = document.createElement('button');
+        renameBtn.className = 'chip';
+        renameBtn.textContent = 'Rename';
+        renameBtn.addEventListener('click', () => renameProject(name));
+        row.appendChild(renameBtn);
+
+        const delBtn = document.createElement('button');
+        delBtn.className = 'chip';
+        delBtn.style.color = '#c66';
+        delBtn.style.borderColor = '#442';
+        delBtn.textContent = 'Delete';
+        delBtn.addEventListener('click', () => deleteProject(name, count));
+        row.appendChild(delBtn);
+
+        list.appendChild(row);
+      });
+    }
+
+    async function renameProject(oldName) {
+      const raw = prompt(`Rename "${oldName}" to:`, oldName);
+      if (raw == null) return;
+      const newName = raw.trim();
+      if (!newName || newName === oldName) return;
+
+      const all = await dbGetAll();
+      const collisions = all.filter(r =>
+        r.tags_human && r.tags_human.project &&
+        r.tags_human.project.toLowerCase() === newName.toLowerCase() &&
+        r.tags_human.project !== oldName
+      );
+      if (collisions.length && !confirm(`A project called "${collisions[0].tags_human.project}" already exists. Merge them?`)) {
+        return;
+      }
+
+      const targetName = collisions.length ? collisions[0].tags_human.project : newName;
+      const affected = all.filter(r => r.tags_human && r.tags_human.project === oldName);
+      for (const r of affected) {
+        r.tags_human.project = targetName;
+        r.search_text = buildSearchText(r);
+        await dbPut(r);
+      }
+      toast(`Renamed to ${targetName}`);
+      await renderSettings();
+    }
+
+    async function deleteProject(name, count) {
+      if (!confirm(`Delete project "${name}"? ${count} ${count === 1 ? 'photo' : 'photos'} will be untagged (the photos themselves stay).`)) return;
+      const all = await dbGetAll();
+      const affected = all.filter(r => r.tags_human && r.tags_human.project === name);
+      for (const r of affected) {
+        r.tags_human.project = null;
+        r.search_text = buildSearchText(r);
+        await dbPut(r);
+      }
+      toast(`Project removed`);
+      await renderSettings();
+    }
+
     // Back-button: one step back; at the first step, discard and go home.
     const STEP_BACK = {
       'type': null,
       'primary-building': 'type',
       'primary-building-concepts': 'primary-building',
+      'primary-building-materiality': 'primary-building-concepts',
+      'primary-building-note': 'primary-building-materiality',
       'primary-element': 'type',
       'primary-graphic': 'type',
       'artwork-details': 'primary-graphic',
@@ -775,6 +899,8 @@
       'type': 'What is this?',
       'primary-building': 'Typology',
       'primary-building-concepts': 'Concepts',
+      'primary-building-materiality': 'Materiality',
+      'primary-building-note': 'Note',
       'primary-element': 'Element',
       'primary-graphic': 'Graphic',
       'artwork-details': 'Artwork',
@@ -810,6 +936,10 @@
         renderTypologyStep(c);
       } else if (captureStep === 'primary-building-concepts') {
         renderBuildingConceptsStep(c);
+      } else if (captureStep === 'primary-building-materiality') {
+        renderBuildingMaterialityStep(c);
+      } else if (captureStep === 'primary-building-note') {
+        renderBuildingNoteStep(c);
       } else if (captureStep === 'primary-element') {
         renderElementStep(c);
       } else if (captureStep === 'primary-graphic') {
@@ -883,15 +1013,80 @@
       const actions = document.createElement('div');
       actions.className = 'capture-actions';
       actions.innerHTML = `
-        <button class="btn-secondary" id="concepts-skip">Skip</button>
-        <button class="btn-primary" id="concepts-done">Done</button>
+        <button class="btn-secondary" id="concepts-skip">Skip rest</button>
+        <button class="btn-primary" id="concepts-done">Next</button>
       `;
       c.appendChild(actions);
-      document.getElementById('concepts-skip').addEventListener('click', () => {
-        captureDraft.concepts = [];
+      document.getElementById('concepts-skip').addEventListener('click', finishCapture);
+      document.getElementById('concepts-done').addEventListener('click', () => {
+        captureStep = 'primary-building-materiality';
+        renderCaptureStep();
+      });
+    }
+
+    function renderBuildingMaterialityStep(c) {
+      c.innerHTML = '<p class="step-question">Materiality (tap any that apply)</p>';
+      if (!captureDraft.materials) captureDraft.materials = [];
+
+      const row = document.createElement('div');
+      row.className = 'chip-row';
+      MATERIALS.forEach(m => {
+        const chip = document.createElement('button');
+        chip.className = 'chip';
+        chip.textContent = m;
+        if (captureDraft.materials.includes(m)) chip.classList.add('active');
+        chip.addEventListener('click', () => {
+          const idx = captureDraft.materials.indexOf(m);
+          if (idx === -1) captureDraft.materials.push(m);
+          else captureDraft.materials.splice(idx, 1);
+          chip.classList.toggle('active');
+        });
+        row.appendChild(chip);
+      });
+      c.appendChild(row);
+
+      const actions = document.createElement('div');
+      actions.className = 'capture-actions';
+      actions.innerHTML = `
+        <button class="btn-secondary" id="materiality-skip">Skip rest</button>
+        <button class="btn-primary" id="materiality-done">Next</button>
+      `;
+      c.appendChild(actions);
+      document.getElementById('materiality-skip').addEventListener('click', finishCapture);
+      document.getElementById('materiality-done').addEventListener('click', () => {
+        captureStep = 'primary-building-note';
+        renderCaptureStep();
+      });
+    }
+
+    function renderBuildingNoteStep(c) {
+      c.innerHTML = '<p class="step-question">Personal note (optional)</p>';
+
+      const f = document.createElement('div');
+      f.className = 'form-field';
+      const textarea = document.createElement('textarea');
+      textarea.className = 'form-input';
+      textarea.rows = 4;
+      textarea.placeholder = 'A line or two about why this caught your eye…';
+      textarea.value = captureDraft.note || '';
+      textarea.addEventListener('input', () => {
+        captureDraft.note = textarea.value.trim() || null;
+      });
+      f.appendChild(textarea);
+      c.appendChild(f);
+
+      const actions = document.createElement('div');
+      actions.className = 'capture-actions';
+      actions.innerHTML = `
+        <button class="btn-secondary" id="note-skip">Skip</button>
+        <button class="btn-primary" id="note-save">Save</button>
+      `;
+      c.appendChild(actions);
+      document.getElementById('note-skip').addEventListener('click', () => {
+        captureDraft.note = null;
         finishCapture();
       });
-      document.getElementById('concepts-done').addEventListener('click', finishCapture);
+      document.getElementById('note-save').addEventListener('click', finishCapture);
     }
 
     function renderElementStep(c) {
@@ -1071,6 +1266,7 @@
           concepts: t.concepts || [],
           element_name: t.element_name || null,
           material: null,
+          materials: t.materials || [],
           graphic_kind: t.graphic_kind || null,
           title: t.title || null,
           creator: t.creator || null,
@@ -1081,6 +1277,7 @@
           contact_name: null,
           contact_company: null,
           project: null,
+          note: t.note || null,
           visual: [],
           keywords: [],
         },
@@ -1344,6 +1541,7 @@
 
       // Universal sections
       renderProjectField(body);
+      renderNoteField(body);
       renderVisualField(body);
       renderKeywordsField(body);
     }
@@ -1375,6 +1573,9 @@
       body.appendChild(section('Concepts (multi)', buildChipPicker(
         CONCEPTS.map(c => c.label), 'concepts', true, CONCEPTS
       )));
+
+      // Materiality: multi-select chips
+      body.appendChild(section('Materiality (multi)', buildChipPicker(MATERIALS, 'materials', true)));
     }
 
     // -------- Element fields --------
@@ -1525,6 +1726,28 @@
       h.textContent = 'Project';
       s.appendChild(h);
       s.appendChild(buildTextInput('project', 'Project name (leave blank for none)'));
+      body.appendChild(s);
+    }
+
+    // -------- Universal: Note --------
+    function renderNoteField(body) {
+      const s = document.createElement('div');
+      s.className = 'section';
+      const h = document.createElement('p');
+      h.className = 'section-title';
+      h.textContent = 'Note';
+      s.appendChild(h);
+
+      const textarea = document.createElement('textarea');
+      textarea.className = 'form-input';
+      textarea.rows = 3;
+      textarea.placeholder = 'A line or two about why this caught your eye…';
+      textarea.value = currentDetailRecord.tags_human.note || '';
+      textarea.addEventListener('input', () => {
+        currentDetailRecord.tags_human.note = textarea.value.trim() || null;
+      });
+      textarea.addEventListener('blur', saveDetailRecord);
+      s.appendChild(textarea);
       body.appendChild(s);
     }
 
