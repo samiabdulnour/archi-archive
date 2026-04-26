@@ -105,6 +105,116 @@
     }
     .link-button:active { background: #222; }
 
+    /* ============ CAMERA ============ */
+    #view-camera {
+      padding: 0;
+      background: #000;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .cam-video {
+      width: 100%;
+      height: 100vh;
+      height: 100dvh;
+      object-fit: cover;
+      background: #000;
+      display: block;
+    }
+
+    .cam-top {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      padding: env(safe-area-inset-top, 0.75rem) 0.9rem 0.75rem;
+      padding-top: max(env(safe-area-inset-top, 0.75rem), 0.75rem);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.6rem;
+      z-index: 10;
+    }
+
+    .cam-pill {
+      background: rgba(0,0,0,0.55);
+      color: #fff;
+      border-radius: 999px;
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+    }
+    .cam-icon {
+      width: 38px;
+      height: 38px;
+      font-size: 1.3rem;
+      line-height: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .cam-mode {
+      display: flex;
+      gap: 0;
+      background: rgba(0,0,0,0.55);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      border-radius: 999px;
+      padding: 0.2rem;
+    }
+    .cam-mode-btn {
+      padding: 0.45rem 0.95rem;
+      font-size: 0.85rem;
+      color: #ddd;
+      border-radius: 999px;
+    }
+    .cam-mode-btn.active {
+      background: #fff;
+      color: #111;
+      font-weight: 600;
+    }
+
+    .cam-bottom {
+      position: absolute;
+      left: 0; right: 0;
+      bottom: max(env(safe-area-inset-bottom, 1.5rem), 1.5rem);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.7rem;
+      z-index: 10;
+    }
+    .cam-active-project {
+      background: rgba(0,0,0,0.55);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      color: #fff;
+      padding: 0.35rem 0.85rem;
+      border-radius: 999px;
+      font-size: 0.85rem;
+    }
+    .cam-shutter {
+      width: 74px;
+      height: 74px;
+      border-radius: 999px;
+      background: #fff;
+      border: 4px solid rgba(255,255,255,0.55);
+      box-shadow: 0 0 0 1px rgba(0,0,0,0.2);
+      transition: transform 0.07s ease;
+    }
+    .cam-shutter:active { transform: scale(0.93); background: #ddd; }
+
+    .cam-error {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      text-align: center;
+      color: #eee;
+      background: rgba(0,0,0,0.85);
+      z-index: 20;
+    }
+
     /* ============ CAPTURE ============ */
     #view-capture { padding: 0 0 1.5rem; }
 
@@ -534,6 +644,24 @@
     </div>
   </section>
 
+  <!-- ============ CAMERA (custom getUserMedia camera) ============ -->
+  <section id="view-camera" class="view">
+    <video id="cam-video" class="cam-video" playsinline autoplay muted></video>
+    <div class="cam-top">
+      <button class="cam-pill cam-icon" id="cam-back" aria-label="Close camera">&times;</button>
+      <div class="cam-mode">
+        <button class="cam-mode-btn" data-cam-mode="reference">Reference</button>
+        <button class="cam-mode-btn" data-cam-mode="project">Project</button>
+      </div>
+      <button class="cam-pill cam-icon" id="cam-flip" aria-label="Switch camera">&#8634;</button>
+    </div>
+    <div class="cam-bottom">
+      <div class="cam-active-project" id="cam-active-project" hidden></div>
+      <button class="cam-shutter" id="cam-shutter" aria-label="Take photo"></button>
+    </div>
+    <div class="cam-error" id="cam-error" hidden></div>
+  </section>
+
   <!-- ============ CAPTURE ============ -->
   <section id="view-capture" class="view">
     <header class="gallery-header">
@@ -578,8 +706,7 @@
     <button id="delete-btn">Delete photo</button>
   </section>
 
-  <!-- Hidden file inputs (camera triggers) -->
-  <input id="camera-input" class="hidden-file" type="file" accept="image/*" capture="environment">
+  <!-- Hidden file input (only used by detail view to attach a label photo to artworks) -->
   <input id="label-input" class="hidden-file" type="file" accept="image/*" capture="environment">
 
   <div id="toast"></div>
@@ -868,37 +995,172 @@
     });
 
     // ============================================================
-    // CAPTURE — primary camera
+    // CAPTURE — tagging flow (camera lives in its own view, see CAMERA section)
     // ============================================================
-    const cameraInput = document.getElementById('camera-input');
-    const capturePreview = document.getElementById('capture-preview');
     const stepContainer = document.getElementById('capture-step-container');
 
-    cameraInput.addEventListener('change', (event) => {
-      const file = event.target.files[0];
-      event.target.value = '';
-      if (!file) return;
+    // ============================================================
+    // CUSTOM CAMERA (replaces native file-input camera)
+    // ============================================================
+    let mediaStream = null;
+    let cameraFacing = 'environment';   // 'environment' | 'user'
+    let cameraStarting = false;
 
-      if (captureMode === 'project') {
-        savePhotoToProject(file);
-        return;
+    async function openCamera() {
+      showView('camera');
+      updateCameraModeUI();
+      hideCameraError();
+      await startCameraStream();
+    }
+
+    async function startCameraStream() {
+      if (mediaStream || cameraStarting) return;
+      cameraStarting = true;
+      try {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          throw new Error('Camera API not available. Open the site over HTTPS.');
+        }
+        mediaStream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: { ideal: cameraFacing },
+            width:  { ideal: 4096 },
+            height: { ideal: 2160 },
+          },
+          audio: false,
+        });
+        const video = document.getElementById('cam-video');
+        video.srcObject = mediaStream;
+        await video.play().catch(() => { /* autoplay may need a tap; the shutter still works */ });
+      } catch (err) {
+        showCameraError(err && err.message ? err.message : 'Could not start the camera.');
+      } finally {
+        cameraStarting = false;
       }
+    }
 
-      pendingBlob = file;
-      pendingLabelBlob = null;
-      captureDraft = {};
-      captureStep = 'type';
+    function stopCameraStream() {
+      if (mediaStream) {
+        mediaStream.getTracks().forEach(t => t.stop());
+        mediaStream = null;
+      }
+      const video = document.getElementById('cam-video');
+      if (video) video.srcObject = null;
+    }
 
-      capturePreview.src = URL.createObjectURL(file);
-      showView('capture');
-      renderCaptureStep();
+    function showCameraError(msg) {
+      const el = document.getElementById('cam-error');
+      el.textContent = msg;
+      el.hidden = false;
+    }
+    function hideCameraError() {
+      document.getElementById('cam-error').hidden = true;
+    }
+
+    function isCameraViewActive() {
+      return document.getElementById('view-camera').classList.contains('active');
+    }
+
+    // Pause/resume the stream when the page is hidden (iOS Safari drops it on backgrounding).
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        stopCameraStream();
+      } else if (isCameraViewActive()) {
+        startCameraStream();
+      }
     });
 
-    // Home: Reference button opens camera directly in reference mode
+    document.getElementById('cam-back').addEventListener('click', () => {
+      stopCameraStream();
+      showView('home');
+    });
+
+    document.getElementById('cam-flip').addEventListener('click', async () => {
+      cameraFacing = (cameraFacing === 'environment') ? 'user' : 'environment';
+      stopCameraStream();
+      await startCameraStream();
+    });
+
+    document.querySelectorAll('[data-cam-mode]').forEach(btn => {
+      btn.addEventListener('click', () => switchCameraMode(btn.dataset.camMode));
+    });
+
+    function updateCameraModeUI() {
+      document.querySelectorAll('[data-cam-mode]').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.camMode === captureMode);
+      });
+      const tag = document.getElementById('cam-active-project');
+      if (captureMode === 'project' && activeProject) {
+        tag.hidden = false;
+        tag.textContent = activeProject;
+      } else {
+        tag.hidden = true;
+      }
+    }
+
+    async function switchCameraMode(mode) {
+      if (mode === 'reference') {
+        captureMode = 'reference';
+        activeProject = null;
+        updateCameraModeUI();
+        return;
+      }
+      // mode === 'project'
+      if (activeProject) {
+        captureMode = 'project';
+        updateCameraModeUI();
+      } else {
+        // Need to pick a project first; bounce to picker, then come back into camera.
+        stopCameraStream();
+        await renderProjectPicker();
+        showView('project');
+      }
+    }
+
+    document.getElementById('cam-shutter').addEventListener('click', async () => {
+      const blob = await captureFrame();
+      if (!blob) return;
+      const mode = captureMode;
+      stopCameraStream();
+      if (mode === 'project') {
+        await savePhotoToProject(blob);
+      } else {
+        startReferenceTagging(blob);
+      }
+    });
+
+    async function captureFrame() {
+      const video = document.getElementById('cam-video');
+      if (!video || !video.videoWidth) {
+        toast('Camera not ready');
+        return null;
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+      return new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.92));
+    }
+
+    function startReferenceTagging(blob) {
+      pendingBlob = blob;
+      pendingLabelBlob = null;
+      captureDraft = {};
+      captureBackStack = [];
+      captureStep = 'type';
+      const preview = document.getElementById('capture-preview');
+      const url = URL.createObjectURL(blob);
+      objectUrls.push(url);
+      preview.src = url;
+      showView('capture');
+      renderCaptureStep();
+    }
+
+    // Home: Reference button opens custom camera in reference mode
     document.getElementById('home-reference').addEventListener('click', () => {
       captureMode = 'reference';
+      activeProject = null;
       startLocationCapture();
-      cameraInput.click();
+      openCamera();
     });
 
     // Home: Project button goes to picker (camera opens after project is chosen)
@@ -1676,7 +1938,7 @@
       activeProject = match || raw;
       captureMode = 'project';
       startLocationCapture();
-      cameraInput.click();
+      openCamera();
     });
 
     async function savePhotoToProject(file) {
@@ -1718,9 +1980,9 @@
     }
 
     document.getElementById('project-session-another').addEventListener('click', () => {
-      // captureMode and activeProject remain; reopen camera
+      // captureMode and activeProject remain; reopen the live camera
       startLocationCapture();
-      cameraInput.click();
+      openCamera();
     });
 
     document.getElementById('project-session-done').addEventListener('click', () => {
