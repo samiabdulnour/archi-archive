@@ -77,6 +77,8 @@
       border: 0;
       background: none;
       cursor: pointer;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
     }
 
     /* Views: only one shown at a time */
@@ -246,15 +248,24 @@
       font-size: 0.85rem;
     }
     .cam-shutter {
-      width: 74px;
-      height: 74px;
+      width: 76px;
+      height: 76px;
       border-radius: 999px;
       background: #fff;
       border: 4px solid rgba(255,255,255,0.55);
       box-shadow: 0 0 0 1px rgba(0,0,0,0.2);
       transition: transform 0.07s ease;
+      position: relative;
+      z-index: 12;
     }
-    .cam-shutter:active { transform: scale(0.93); background: #ddd; }
+    .cam-shutter:active { transform: scale(0.92); background: #ddd; }
+
+    .cam-flip-btn {
+      position: absolute;
+      right: 1rem;
+      bottom: calc(max(env(safe-area-inset-bottom, 1.5rem), 1.5rem) + 16px);
+      z-index: 11;
+    }
 
     .cam-error {
       position: absolute;
@@ -633,16 +644,6 @@
 </head>
 <body>
 
-  <!-- ============ HOME ============ -->
-  <section id="view-home" class="view active">
-    <h1>archi-archive</h1>
-    <button class="take-photo" id="home-reference">Reference</button>
-    <p class="home-hint">random buildings, inspirations, artworks</p>
-    <button class="take-photo secondary" id="home-project">Project</button>
-    <p class="home-hint">on-site photos, client meetings, study material</p>
-    <button class="link-button" id="open-gallery">Browse archive</button>
-    <button class="link-button" id="open-settings">Options</button>
-  </section>
 
   <!-- ============ SETTINGS ============ -->
   <section id="view-settings" class="view">
@@ -714,17 +715,18 @@
     </div>
   </section>
 
-  <!-- ============ CAMERA (custom getUserMedia camera) ============ -->
-  <section id="view-camera" class="view">
+  <!-- ============ HOME = CAMERA (custom getUserMedia camera) ============ -->
+  <section id="view-camera" class="view active">
     <video id="cam-video" class="cam-video" playsinline webkit-playsinline autoplay muted></video>
     <div class="cam-top">
-      <button class="cam-pill cam-icon" id="cam-back" aria-label="Close camera">&times;</button>
+      <button class="cam-pill cam-icon" id="cam-gallery" aria-label="Gallery">&#8862;</button>
       <div class="cam-mode">
         <button class="cam-mode-btn" data-cam-mode="reference">Reference</button>
         <button class="cam-mode-btn" data-cam-mode="project">Project</button>
       </div>
-      <button class="cam-pill cam-icon" id="cam-flip" aria-label="Switch camera">&#8634;</button>
+      <button class="cam-pill cam-icon" id="cam-options" aria-label="Options">&#9881;</button>
     </div>
+    <button class="cam-pill cam-icon cam-flip-btn" id="cam-flip" aria-label="Switch camera">&#8634;</button>
     <div class="cam-bottom">
       <div class="cam-active-project" id="cam-active-project" hidden></div>
       <button class="cam-shutter" id="cam-shutter" aria-label="Take photo"></button>
@@ -1055,9 +1057,22 @@
     // VIEW SWITCHING
     // ============================================================
     function showView(name) {
+      // 'home' is now the camera
+      if (name === 'home') name = 'camera';
       document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-      document.getElementById('view-' + name).classList.add('active');
+      const view = document.getElementById('view-' + name);
+      if (!view) return;
+      view.classList.add('active');
       window.scrollTo(0, 0);
+
+      // Camera stream lifecycle: only run while the camera view is active.
+      if (name === 'camera') {
+        updateCameraModeUI();
+        hideCameraError();
+        startCameraStream();
+      } else {
+        stopCameraStream();
+      }
     }
 
     document.querySelectorAll('[data-goto]').forEach(btn => {
@@ -1075,13 +1090,6 @@
     let mediaStream = null;
     let cameraFacing = 'environment';   // 'environment' | 'user'
     let cameraStarting = false;
-
-    async function openCamera() {
-      showView('camera');
-      updateCameraModeUI();
-      hideCameraError();
-      await startCameraStream();
-    }
 
     async function startCameraStream() {
       if (mediaStream || cameraStarting) return;
@@ -1134,9 +1142,14 @@
       document.getElementById('cam-error').hidden = true;
     }
 
-    document.getElementById('cam-back').addEventListener('click', () => {
-      stopCameraStream();
-      showView('home');
+    document.getElementById('cam-gallery').addEventListener('click', async () => {
+      showView('gallery');
+      await renderGallery();
+    });
+
+    document.getElementById('cam-options').addEventListener('click', async () => {
+      await renderSettings();
+      showView('settings');
     });
 
     document.getElementById('cam-flip').addEventListener('click', async () => {
@@ -1181,7 +1194,8 @@
       }
     }
 
-    document.getElementById('cam-shutter').addEventListener('click', async () => {
+    async function shutterPressed() {
+      toast('Capturing…');
       const blob = await captureFrame();
       if (!blob) return;
       const mode = captureMode;
@@ -1191,7 +1205,8 @@
       } else {
         startReferenceTagging(blob);
       }
-    });
+    }
+    document.getElementById('cam-shutter').addEventListener('click', shutterPressed);
 
     async function captureFrame() {
       const video = document.getElementById('cam-video');
@@ -1228,25 +1243,8 @@
       renderCaptureStep();
     }
 
-    // Home: Reference button opens custom camera in reference mode
-    document.getElementById('home-reference').addEventListener('click', () => {
-      captureMode = 'reference';
-      activeProject = null;
-      startLocationCapture();
-      openCamera();
-    });
-
-    // Home: Project button goes to picker (camera opens after project is chosen)
-    document.getElementById('home-project').addEventListener('click', async () => {
-      await renderProjectPicker();
-      showView('project');
-    });
-
-    // Home: Options button opens the settings view
-    document.getElementById('open-settings').addEventListener('click', async () => {
-      await renderSettings();
-      showView('settings');
-    });
+    // The camera is the home; first-load location warm-up.
+    startLocationCapture();
 
     async function renderSettings() {
       renderSettingsSteps();
@@ -2011,7 +2009,7 @@
       activeProject = match || raw;
       captureMode = 'project';
       startLocationCapture();
-      openCamera();
+      showView('camera');
     });
 
     async function savePhotoToProject(file) {
@@ -2055,7 +2053,7 @@
     document.getElementById('project-session-another').addEventListener('click', () => {
       // captureMode and activeProject remain; reopen the live camera
       startLocationCapture();
-      openCamera();
+      showView('camera');
     });
 
     document.getElementById('project-session-done').addEventListener('click', () => {
@@ -2071,11 +2069,6 @@
     // ============================================================
     // GALLERY
     // ============================================================
-    document.getElementById('open-gallery').addEventListener('click', async () => {
-      showView('gallery');
-      await renderGallery();
-    });
-
     document.getElementById('search-input').addEventListener('input', (e) => {
       activeFilters.search = e.target.value.trim().toLowerCase();
       renderGallery();
@@ -2577,6 +2570,12 @@
       clearTimeout(toastTimer);
       toastTimer = setTimeout(() => el.classList.remove('show'), 1500);
     }
+
+    // ============================================================
+    // BOOT — the camera is the home view; route through showView so the
+    // stream lifecycle hooks run on first load.
+    // ============================================================
+    showView('camera');
   </script>
 </body>
 </html>
