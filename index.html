@@ -54,6 +54,9 @@
 
     * { box-sizing: border-box; }
 
+    /* The hidden HTML attribute should win over any display rule we set. */
+    [hidden] { display: none !important; }
+
     html, body {
       margin: 0;
       padding: 0;
