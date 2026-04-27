@@ -773,7 +773,7 @@
         <span id="cam-project-label">Reference</span>
         <span class="cam-caret" id="cam-project-caret" hidden>&#9662;</span>
       </button>
-      <button class="cam-pill cam-icon" id="cam-options" aria-label="Options">&#9881;</button>
+      <button class="cam-pill cam-icon" id="cam-options" aria-label="Options">&#8943;</button>
     </div>
 
     <!-- Project picker popup, anchored under the top-left trigger -->
@@ -975,6 +975,24 @@
       saveSettings(s);
     }
 
+    // User-created project names that may not yet have any photos.
+    function getStoredProjects() {
+      return loadSettings().projects || [];
+    }
+    function addStoredProject(name) {
+      const s = loadSettings();
+      s.projects = s.projects || [];
+      if (!s.projects.some(p => p.toLowerCase() === name.toLowerCase())) {
+        s.projects.push(name);
+        saveSettings(s);
+      }
+    }
+    function removeStoredProject(name) {
+      const s = loadSettings();
+      s.projects = (s.projects || []).filter(p => p !== name);
+      saveSettings(s);
+    }
+
     function getEffectiveTypology() {
       return [...TYPOLOGY, ...getCustom('typology')];
     }
@@ -1097,10 +1115,10 @@
     function buildSearchText(record) {
       const t = record.tags_human || {};
       const parts = [
-        t.type, t.typology,
-        ...(t.concepts || []),
-        t.element_name, t.material,
-        ...(t.materials || []),
+        t.type, t.typology, t.typology_note,
+        ...(t.concepts || []), t.concepts_note,
+        t.element_name, t.element_note, t.material,
+        ...(t.materials || []), t.materials_note,
         t.graphic_kind,
         t.title, t.creator, t.year, t.source,
         t.brand, t.model,
@@ -1222,6 +1240,10 @@
     // Projects the user typed in this session but haven't saved a photo into yet.
     let pendingNewProjects = [];
 
+    // Reference mode: when set, the next shutter press auto-saves with these tags.
+    // Stays on across multiple shots until the user picks "New tagging" or switches mode.
+    let referenceReuseTags = null;
+
     function updateCameraModeUI() {
       document.querySelectorAll('[data-cam-mode]').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.camMode === captureMode);
@@ -1241,12 +1263,27 @@
         }
         caret.hidden = false;
         shutter.classList.toggle('disabled', !activeProject);
+      } else if (referenceReuseTags) {
+        label.textContent = '↻ ' + summariseReuseTags(referenceReuseTags);
+        caret.hidden = false;
+        trigger.classList.add('active');
+        shutter.classList.remove('disabled');
       } else {
         label.textContent = 'Reference';
-        caret.hidden = true;
+        caret.hidden = false;
         trigger.classList.remove('active');
         shutter.classList.remove('disabled');
       }
+    }
+
+    function summariseReuseTags(t) {
+      const parts = [];
+      if (t.typology) parts.push(t.typology);
+      if (t.element_name) parts.push(t.element_name);
+      if (t.creator) parts.push(t.creator);
+      if (parts.length === 0 && (t.materials || []).length) parts.push(t.materials[0]);
+      if (parts.length === 0) parts.push('Reuse');
+      return parts.slice(0, 2).join(' · ');
     }
 
     async function switchCameraMode(mode) {
@@ -1256,8 +1293,9 @@
         updateCameraModeUI();
         return;
       }
-      // mode === 'project'
+      // mode === 'project' — reuse mode is reference-only, so clear it.
       captureMode = 'project';
+      referenceReuseTags = null;
       updateCameraModeUI();
       // If no project selected yet, open the picker so the user can choose immediately.
       if (!activeProject) await openProjectPopup();
@@ -1311,9 +1349,73 @@
         closeProjectPopup();
         return;
       }
-      // Always open the picker; if currently in reference mode, switch to project on pick.
-      await openProjectPopup();
+      if (captureMode === 'project') await openProjectPopup();
+      else await openReferencePopup();
     });
+
+    async function openReferencePopup() {
+      const popup = document.getElementById('cam-project-popup');
+      popup.innerHTML = '';
+
+      // "New tagging" — clears any reuse setting.
+      const newItem = document.createElement('div');
+      newItem.className = 'item';
+      if (!referenceReuseTags) newItem.classList.add('active');
+      newItem.textContent = 'New tagging';
+      newItem.addEventListener('click', () => {
+        referenceReuseTags = null;
+        closeProjectPopup();
+        updateCameraModeUI();
+      });
+      popup.appendChild(newItem);
+
+      // "Reuse last" — shows the most recent reference photo's tags.
+      const last = await getMostRecentReferenceTags();
+      if (last) {
+        const reuse = document.createElement('div');
+        reuse.className = 'item';
+        if (referenceReuseTags) reuse.classList.add('active');
+        reuse.innerHTML = `↻ Reuse last <span style="opacity:0.6; margin-left:0.4rem; font-weight:400; font-size:0.85rem;">${summariseReuseTags(last)}</span>`;
+        reuse.addEventListener('click', () => {
+          referenceReuseTags = last;
+          closeProjectPopup();
+          updateCameraModeUI();
+        });
+        popup.appendChild(reuse);
+      } else {
+        const empty = document.createElement('div');
+        empty.className = 'empty';
+        empty.textContent = 'Take and tag a reference photo first to enable reuse.';
+        popup.appendChild(empty);
+      }
+
+      popup.hidden = false;
+    }
+
+    async function getMostRecentReferenceTags() {
+      const all = await dbGetAll();
+      if (all.length === 0) return null;
+      const refs = all
+        .filter(r => r.tags_human && !r.tags_human.project)
+        .sort((a, b) => b.created_at - a.created_at);
+      if (refs.length === 0) return null;
+      const t = refs[0].tags_human;
+      // Copy only the tag fields, not blobs/dates/coords.
+      return {
+        type: t.type, typology: t.typology, typology_note: t.typology_note,
+        concepts: [...(t.concepts || [])], concepts_note: t.concepts_note,
+        element_name: t.element_name, element_note: t.element_note,
+        material: t.material,
+        materials: [...(t.materials || [])], materials_note: t.materials_note,
+        graphic_kind: t.graphic_kind,
+        title: t.title, creator: t.creator, year: t.year, source: t.source,
+        brand: t.brand, model: t.model,
+        contact_name: t.contact_name, contact_company: t.contact_company,
+        visual: [...(t.visual || [])],
+        keywords: [...(t.keywords || [])],
+        note: t.note,
+      };
+    }
 
     // Tap outside the popup to dismiss.
     document.addEventListener('click', (e) => {
@@ -1374,10 +1476,22 @@
       if (captureMode === 'project') {
         // Stay in the camera so the user can immediately shoot the next photo.
         await savePhotoToProject(blob);
-      } else {
-        stopCameraStream();
-        startReferenceTagging(blob);
+        return;
       }
+      // Reference mode
+      if (referenceReuseTags) {
+        // Auto-save with the reused tags; stay in the camera.
+        pendingBlob = blob;
+        pendingLabelBlob = null;
+        captureDraft = { ...referenceReuseTags };
+        captureBackStack = [];
+        captureStep = null;
+        await finishCapture();
+        toast('Saved (reused tags)');
+        return;
+      }
+      stopCameraStream();
+      startReferenceTagging(blob);
     }
     document.getElementById('cam-shutter').addEventListener('click', shutterPressed);
 
@@ -1434,47 +1548,78 @@
         const p = r.tags_human && r.tags_human.project;
         if (p) counts.set(p, (counts.get(p) || 0) + 1);
       });
+      // Make stored-but-unphotographed projects show up too, with count 0.
+      getStoredProjects().forEach(p => { if (!counts.has(p)) counts.set(p, 0); });
 
       if (counts.size === 0) {
         const p = document.createElement('p');
-        p.style.margin = 0;
+        p.style.margin = '0 0 0.6rem';
         p.style.color = '#888';
         p.style.fontSize = '0.85rem';
         p.textContent = 'No projects yet.';
         list.appendChild(p);
-        return;
+      } else {
+        counts.forEach((count, name) => {
+          const row = document.createElement('div');
+          row.style.display = 'flex';
+          row.style.alignItems = 'center';
+          row.style.gap = '0.5rem';
+          row.style.padding = '0.6rem 0';
+          row.style.borderBottom = '1px solid var(--border)';
+
+          const label = document.createElement('div');
+          label.style.flex = '1';
+          label.style.fontSize = '0.95rem';
+          label.innerHTML = `${name} <span style="color:var(--text-faint); font-size:0.8rem;">(${count})</span>`;
+          row.appendChild(label);
+
+          const renameBtn = document.createElement('button');
+          renameBtn.className = 'chip';
+          renameBtn.textContent = 'Rename';
+          renameBtn.addEventListener('click', () => renameProject(name));
+          row.appendChild(renameBtn);
+
+          const delBtn = document.createElement('button');
+          delBtn.className = 'chip';
+          delBtn.style.color = 'var(--danger)';
+          delBtn.textContent = 'Delete';
+          delBtn.addEventListener('click', () => deleteProject(name, count));
+          row.appendChild(delBtn);
+
+          list.appendChild(row);
+        });
       }
 
-      counts.forEach((count, name) => {
-        const row = document.createElement('div');
-        row.style.display = 'flex';
-        row.style.alignItems = 'center';
-        row.style.gap = '0.5rem';
-        row.style.padding = '0.6rem 0';
-        row.style.borderBottom = '1px solid #222';
+      // Add-new-project row
+      const addRow = document.createElement('div');
+      addRow.style.display = 'flex';
+      addRow.style.gap = '0.4rem';
+      addRow.style.marginTop = '0.6rem';
 
-        const label = document.createElement('div');
-        label.style.flex = '1';
-        label.style.fontSize = '0.95rem';
-        label.innerHTML = `${name} <span style="color:#666; font-size:0.8rem;">(${count})</span>`;
-        row.appendChild(label);
+      const input = document.createElement('input');
+      input.className = 'form-input';
+      input.type = 'text';
+      input.placeholder = 'New project name';
 
-        const renameBtn = document.createElement('button');
-        renameBtn.className = 'chip';
-        renameBtn.textContent = 'Rename';
-        renameBtn.addEventListener('click', () => renameProject(name));
-        row.appendChild(renameBtn);
+      const addBtn = document.createElement('button');
+      addBtn.className = 'chip';
+      addBtn.textContent = 'Add';
 
-        const delBtn = document.createElement('button');
-        delBtn.className = 'chip';
-        delBtn.style.color = '#c66';
-        delBtn.style.borderColor = '#442';
-        delBtn.textContent = 'Delete';
-        delBtn.addEventListener('click', () => deleteProject(name, count));
-        row.appendChild(delBtn);
-
-        list.appendChild(row);
+      const submit = async () => {
+        const name = input.value.trim();
+        if (!name) return;
+        addStoredProject(name);
+        input.value = '';
+        await renderSettings();
+      };
+      addBtn.addEventListener('click', submit);
+      input.addEventListener('keydown', e => {
+        if (e.key === 'Enter') { e.preventDefault(); submit(); }
       });
+
+      addRow.appendChild(input);
+      addRow.appendChild(addBtn);
+      list.appendChild(addRow);
     }
 
     function renderSettingsSteps() {
@@ -1600,6 +1745,9 @@
         r.search_text = buildSearchText(r);
         await dbPut(r);
       }
+      // Mirror the rename in the stored-project list.
+      removeStoredProject(oldName);
+      addStoredProject(targetName);
       toast(`Renamed to ${targetName}`);
       await renderSettings();
     }
@@ -1613,6 +1761,7 @@
         r.search_text = buildSearchText(r);
         await dbPut(r);
       }
+      removeStoredProject(name);
       toast(`Project removed`);
       await renderSettings();
     }
@@ -1736,6 +1885,7 @@
         row.appendChild(chip);
       });
       c.appendChild(row);
+      appendNoteField(c, 'typology_note', 'Note about the typology…');
       addStepActions(c, 'Skip rest', finishCapture, 'Next', () => {
         const next = nextEnabledBuildingStep('primary-building');
         if (next) setCaptureStep(next);
@@ -1749,7 +1899,7 @@
 
       const row = document.createElement('div');
       row.className = 'chip-row';
-      CONCEPTS.forEach(concept => {
+      getEffectiveConcepts().forEach(concept => {
         const chip = document.createElement('button');
         chip.className = 'chip';
         chip.textContent = concept.label;
@@ -1763,16 +1913,9 @@
         row.appendChild(chip);
       });
       c.appendChild(row);
+      appendNoteField(c, 'concepts_note', 'Note about the concepts…');
 
-      const actions = document.createElement('div');
-      actions.className = 'capture-actions';
-      actions.innerHTML = `
-        <button class="btn-secondary" id="concepts-skip">Skip rest</button>
-        <button class="btn-primary" id="concepts-done">Next</button>
-      `;
-      c.appendChild(actions);
-      document.getElementById('concepts-skip').addEventListener('click', finishCapture);
-      document.getElementById('concepts-done').addEventListener('click', () => {
+      addStepActions(c, 'Skip rest', finishCapture, 'Next', () => {
         const next = nextEnabledBuildingStep('primary-building-concepts');
         if (next) setCaptureStep(next);
         else finishCapture();
@@ -1781,6 +1924,7 @@
 
     function renderBuildingMaterialityStep(c) {
       renderMaterialityChips(c);
+      appendNoteField(c, 'materials_note', 'Note about the materials…');
       addStepActions(c, 'Skip rest', finishCapture, 'Next', () => {
         const next = nextEnabledBuildingStep('primary-building-materiality');
         if (next) setCaptureStep(next);
@@ -1883,6 +2027,23 @@
       addStepActions(c, 'Skip', () => { captureDraft.note = null; finishCapture(); }, 'Save', finishCapture);
     }
 
+    // Inline note field that lives under a chip section in the capture flow.
+    // Persists to captureDraft[fieldName]; saved into tags_human at finishCapture.
+    function appendNoteField(c, fieldName, placeholder) {
+      const wrap = document.createElement('div');
+      wrap.style.marginTop = '0.5rem';
+      const textarea = document.createElement('textarea');
+      textarea.className = 'form-input';
+      textarea.rows = 2;
+      textarea.placeholder = placeholder || 'Note for this…';
+      textarea.value = captureDraft[fieldName] || '';
+      textarea.addEventListener('input', () => {
+        captureDraft[fieldName] = textarea.value.trim() || null;
+      });
+      wrap.appendChild(textarea);
+      c.appendChild(wrap);
+    }
+
     function addStepActions(c, leftLabel, leftFn, rightLabel, rightFn) {
       const actions = document.createElement('div');
       actions.className = 'capture-actions';
@@ -1921,11 +2082,13 @@
         g.appendChild(row);
         c.appendChild(g);
       });
+      appendNoteField(c, 'element_note', 'Note about the element…');
       c.appendChild(skipButton());
     }
 
     function renderElementMaterialityStep(c) {
       renderMaterialityChips(c);
+      appendNoteField(c, 'materials_note', 'Note about the materials…');
       addStepActions(c, 'Skip rest', finishCapture, 'Next', () => setCaptureStep('primary-element-note'));
     }
 
@@ -2096,10 +2259,14 @@
         tags_human: {
           type: t.type,
           typology: t.typology || null,
+          typology_note: t.typology_note || null,
           concepts: t.concepts || [],
+          concepts_note: t.concepts_note || null,
           element_name: t.element_name || null,
+          element_note: t.element_note || null,
           material: null,
           materials: t.materials || [],
+          materials_note: t.materials_note || null,
           graphic_kind: t.graphic_kind || null,
           title: t.title || null,
           creator: t.creator || null,
@@ -2133,6 +2300,10 @@
       all.sort((a, b) => b.created_at - a.created_at).forEach(r => {
         const p = r.tags_human && r.tags_human.project;
         if (p && !seen.has(p)) seen.set(p, r.created_at);
+      });
+      // Also include user-created projects that don't yet have any photos.
+      getStoredProjects().forEach(p => {
+        if (!seen.has(p)) seen.set(p, 0);
       });
       return [...seen.keys()];
     }
@@ -2330,6 +2501,24 @@
       renderKeywordsField(body);
     }
 
+    // Section helper that optionally appends an inline note textarea bound to a tags_human field.
+    function sectionWithNote(title, contentEl, noteField) {
+      const s = section(title, contentEl);
+      if (!noteField) return s;
+      const textarea = document.createElement('textarea');
+      textarea.className = 'form-input';
+      textarea.rows = 2;
+      textarea.placeholder = 'Note for this…';
+      textarea.style.marginTop = '0.5rem';
+      textarea.value = currentDetailRecord.tags_human[noteField] || '';
+      textarea.addEventListener('input', () => {
+        currentDetailRecord.tags_human[noteField] = textarea.value.trim() || null;
+      });
+      textarea.addEventListener('blur', saveDetailRecord);
+      s.appendChild(textarea);
+      return s;
+    }
+
     function section(title, contentEl) {
       const s = document.createElement('div');
       s.className = 'section';
@@ -2351,18 +2540,15 @@
     // -------- Building fields --------
     function renderBuildingFields(body) {
       const concepts = getEffectiveConcepts();
-      // Typology: single-pick chips
-      body.appendChild(section('Typology', buildChipPicker(getEffectiveTypology(), 'typology', false)));
-
-      // Concepts: multi-select chips
-      body.appendChild(section('Concepts (multi)', buildChipPicker(
-        concepts.map(c => c.label), 'concepts', true, concepts
-      )));
-
-      // Materiality: multi-select chips
-      body.appendChild(section('Materiality (multi)', buildChipPicker(getEffectiveMaterials(), 'materials', true)));
-
-      // Architect & year text fields
+      body.appendChild(sectionWithNote(
+        'Typology', buildChipPicker(getEffectiveTypology(), 'typology', false), 'typology_note'
+      ));
+      body.appendChild(sectionWithNote(
+        'Concepts (multi)', buildChipPicker(concepts.map(c => c.label), 'concepts', true, concepts), 'concepts_note'
+      ));
+      body.appendChild(sectionWithNote(
+        'Materiality (multi)', buildChipPicker(getEffectiveMaterials(), 'materials', true), 'materials_note'
+      ));
       body.appendChild(buildTextFieldsSection('Architect & year', [
         { field: 'creator', label: 'Architect' },
         { field: 'year',    label: 'Year' },
@@ -2380,9 +2566,10 @@
         g.appendChild(row);
         wrap.appendChild(g);
       });
-      body.appendChild(section('Element', wrap));
-
-      body.appendChild(section('Materiality (multi)', buildChipPicker(getEffectiveMaterials(), 'materials', true)));
+      body.appendChild(sectionWithNote('Element', wrap, 'element_note'));
+      body.appendChild(sectionWithNote(
+        'Materiality (multi)', buildChipPicker(getEffectiveMaterials(), 'materials', true), 'materials_note'
+      ));
     }
 
     // -------- Graphic fields --------
