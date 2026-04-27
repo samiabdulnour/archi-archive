@@ -178,6 +178,7 @@
       display: block;
     }
 
+    /* Top bar */
     .cam-top {
       position: absolute;
       top: 0; left: 0; right: 0;
@@ -194,105 +195,157 @@
       background: rgba(0,0,0,0.55);
       color: #fff;
       border-radius: 999px;
-      backdrop-filter: blur(6px);
-      -webkit-backdrop-filter: blur(6px);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
     }
     .cam-icon {
       width: 38px;
       height: 38px;
-      font-size: 1.3rem;
+      font-size: 1.2rem;
       line-height: 1;
       display: inline-flex;
       align-items: center;
       justify-content: center;
     }
 
+    .cam-project-trigger {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.45rem 0.85rem;
+      font-size: 0.88rem;
+      max-width: 60vw;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .cam-project-trigger #cam-project-label {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
+    }
+    .cam-project-trigger.active {
+      background: #ffd60a;
+      color: #000;
+      font-weight: 600;
+    }
+    .cam-caret {
+      font-size: 0.8rem;
+      opacity: 0.7;
+    }
+
+    /* Project picker popup, drops below the top-left trigger */
+    .cam-project-popup {
+      position: absolute;
+      top: calc(env(safe-area-inset-top, 0.75rem) + 50px);
+      left: 0.9rem;
+      min-width: 220px;
+      max-width: 70vw;
+      max-height: 60vh;
+      background: rgba(0,0,0,0.85);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border-radius: 14px;
+      padding: 0.4rem;
+      overflow-y: auto;
+      z-index: 30;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+    }
+    .cam-project-popup .item {
+      display: flex;
+      align-items: center;
+      padding: 0.7rem 0.85rem;
+      border-radius: 10px;
+      color: #fff;
+      font-size: 0.95rem;
+      cursor: pointer;
+    }
+    .cam-project-popup .item:active { background: rgba(255,255,255,0.08); }
+    .cam-project-popup .item.active {
+      background: rgba(255,255,255,0.12);
+      font-weight: 600;
+    }
+    .cam-project-popup .item.new {
+      color: #ffd60a;
+      border-top: 1px solid rgba(255,255,255,0.1);
+      margin-top: 0.2rem;
+      padding-top: 0.8rem;
+    }
+    .cam-project-popup .empty {
+      padding: 0.8rem 0.85rem;
+      color: #98989d;
+      font-size: 0.85rem;
+      text-align: center;
+    }
+
+    /* Mode toggle: VIDEO/PHOTO style — pill with two segments */
     .cam-mode {
       display: flex;
       gap: 0;
       background: rgba(0,0,0,0.55);
-      backdrop-filter: blur(6px);
-      -webkit-backdrop-filter: blur(6px);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
       border-radius: 999px;
       padding: 0.2rem;
     }
     .cam-mode-btn {
-      padding: 0.45rem 0.95rem;
-      font-size: 0.85rem;
-      color: #ddd;
+      padding: 0.4rem 0.85rem;
+      font-size: 0.78rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #d6d6d6;
       border-radius: 999px;
     }
     .cam-mode-btn.active {
-      background: #fff;
-      color: #111;
-      font-weight: 600;
+      color: #ffd60a;
     }
 
-    .cam-bottom {
-      position: absolute;
-      left: 0; right: 0;
-      bottom: max(env(safe-area-inset-bottom, 1.5rem), 1.5rem);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 0.7rem;
-      z-index: 10;
-    }
-    .cam-project-strip {
-      display: flex;
-      gap: 0.4rem;
-      padding: 0 1rem;
-      overflow-x: auto;
-      max-width: 100vw;
-      scroll-snap-type: x proximity;
-      scrollbar-width: none;
-      -webkit-overflow-scrolling: touch;
-    }
-    .cam-project-strip::-webkit-scrollbar { display: none; }
-    .cam-project-strip .cam-proj-chip {
-      flex-shrink: 0;
-      scroll-snap-align: center;
-      padding: 0.45rem 0.95rem;
-      font-size: 0.9rem;
-      line-height: 1;
-      border-radius: 999px;
-      background: rgba(0,0,0,0.55);
-      backdrop-filter: blur(6px);
-      -webkit-backdrop-filter: blur(6px);
-      color: #fff;
-      white-space: nowrap;
-    }
-    .cam-project-strip .cam-proj-chip.active {
-      background: #fff;
-      color: #000;
-      font-weight: 600;
-    }
-    .cam-project-strip .cam-proj-chip.new {
-      color: #d6d6d6;
-      font-style: italic;
-    }
+    /* Shutter (centered, just above the bottom bar) */
     .cam-shutter {
-      width: 76px;
-      height: 76px;
+      position: absolute;
+      left: 50%;
+      bottom: calc(max(env(safe-area-inset-bottom, 1rem), 1rem) + 70px);
+      transform: translateX(-50%);
+      width: 78px;
+      height: 78px;
       border-radius: 999px;
       background: #fff;
       border: 4px solid rgba(255,255,255,0.55);
       box-shadow: 0 0 0 1px rgba(0,0,0,0.2);
       transition: transform 0.07s ease, opacity 0.15s ease;
-      position: relative;
       z-index: 12;
     }
-    .cam-shutter:active { transform: scale(0.92); background: #ddd; }
+    .cam-shutter:active { transform: translateX(-50%) scale(0.92); background: #ddd; }
     .cam-shutter.disabled {
       opacity: 0.35;
       pointer-events: none;
     }
 
-    .cam-flip-btn {
+    /* Bottom bar: thumbnail | mode | flip */
+    .cam-bottom-bar {
       position: absolute;
-      right: 1rem;
-      bottom: calc(max(env(safe-area-inset-bottom, 1.5rem), 1.5rem) + 16px);
+      left: 0; right: 0;
+      bottom: max(env(safe-area-inset-bottom, 0.75rem), 0.75rem);
+      padding: 0 1.2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
       z-index: 11;
+    }
+
+    .cam-thumb {
+      width: 44px;
+      height: 44px;
+      border-radius: 999px;
+      background-size: cover;
+      background-position: center;
+      background-color: rgba(255,255,255,0.08);
+      border: 2px solid rgba(255,255,255,0.85);
+      overflow: hidden;
+    }
+    .cam-thumb.empty {
+      background-color: rgba(0,0,0,0.55);
+      border-color: rgba(255,255,255,0.4);
     }
 
     .cam-error {
@@ -713,19 +766,32 @@
   <!-- ============ HOME = CAMERA (custom getUserMedia camera) ============ -->
   <section id="view-camera" class="view active">
     <video id="cam-video" class="cam-video" playsinline webkit-playsinline autoplay muted></video>
+
+    <!-- Top bar: project trigger (left), options (right) -->
     <div class="cam-top">
-      <button class="cam-pill cam-icon" id="cam-gallery" aria-label="Gallery">&#8862;</button>
-      <div class="cam-mode">
-        <button class="cam-mode-btn" data-cam-mode="reference">Reference</button>
-        <button class="cam-mode-btn" data-cam-mode="project">Project</button>
-      </div>
+      <button class="cam-pill cam-project-trigger" id="cam-project-trigger">
+        <span id="cam-project-label">Reference</span>
+        <span class="cam-caret" id="cam-project-caret" hidden>&#9662;</span>
+      </button>
       <button class="cam-pill cam-icon" id="cam-options" aria-label="Options">&#9881;</button>
     </div>
-    <button class="cam-pill cam-icon cam-flip-btn" id="cam-flip" aria-label="Switch camera">&#8634;</button>
-    <div class="cam-bottom">
-      <div class="cam-project-strip" id="cam-project-strip" hidden></div>
-      <button class="cam-shutter" id="cam-shutter" aria-label="Take photo"></button>
+
+    <!-- Project picker popup, anchored under the top-left trigger -->
+    <div class="cam-project-popup" id="cam-project-popup" hidden></div>
+
+    <!-- Centered shutter sits above the bottom bar -->
+    <button class="cam-shutter" id="cam-shutter" aria-label="Take photo"></button>
+
+    <!-- Bottom bar: gallery thumbnail (left), mode toggle (center), flip (right) -->
+    <div class="cam-bottom-bar">
+      <button class="cam-thumb empty" id="cam-thumb" aria-label="Gallery"></button>
+      <div class="cam-mode">
+        <button class="cam-mode-btn active" data-cam-mode="reference">Reference</button>
+        <button class="cam-mode-btn" data-cam-mode="project">Project</button>
+      </div>
+      <button class="cam-pill cam-icon" id="cam-flip" aria-label="Switch camera">&#8634;</button>
     </div>
+
     <div class="cam-error" id="cam-error" hidden></div>
   </section>
 
@@ -1064,8 +1130,10 @@
         updateCameraModeUI();
         hideCameraError();
         startCameraStream();
+        refreshCameraThumb();
       } else {
         stopCameraStream();
+        closeProjectPopup();
       }
     }
 
@@ -1136,11 +1204,6 @@
       document.getElementById('cam-error').hidden = true;
     }
 
-    document.getElementById('cam-gallery').addEventListener('click', async () => {
-      showView('gallery');
-      await renderGallery();
-    });
-
     document.getElementById('cam-options').addEventListener('click', async () => {
       await renderSettings();
       showView('settings');
@@ -1156,21 +1219,32 @@
       btn.addEventListener('click', () => switchCameraMode(btn.dataset.camMode));
     });
 
-    // Projects the user typed in this session but hasn't saved a photo into yet.
+    // Projects the user typed in this session but haven't saved a photo into yet.
     let pendingNewProjects = [];
 
     function updateCameraModeUI() {
       document.querySelectorAll('[data-cam-mode]').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.camMode === captureMode);
       });
-      const strip = document.getElementById('cam-project-strip');
+      const trigger = document.getElementById('cam-project-trigger');
+      const label = document.getElementById('cam-project-label');
+      const caret = document.getElementById('cam-project-caret');
       const shutter = document.getElementById('cam-shutter');
+
       if (captureMode === 'project') {
-        strip.hidden = false;
-        renderCameraProjectStrip();
+        if (activeProject) {
+          label.textContent = activeProject;
+          trigger.classList.add('active');
+        } else {
+          label.textContent = 'Pick project';
+          trigger.classList.remove('active');
+        }
+        caret.hidden = false;
         shutter.classList.toggle('disabled', !activeProject);
       } else {
-        strip.hidden = true;
+        label.textContent = 'Reference';
+        caret.hidden = true;
+        trigger.classList.remove('active');
         shutter.classList.remove('disabled');
       }
     }
@@ -1178,42 +1252,77 @@
     async function switchCameraMode(mode) {
       if (mode === 'reference') {
         captureMode = 'reference';
-        activeProject = null;
+        closeProjectPopup();
         updateCameraModeUI();
         return;
       }
-      // mode === 'project' — stay in camera, show inline project chips.
+      // mode === 'project'
       captureMode = 'project';
       updateCameraModeUI();
+      // If no project selected yet, open the picker so the user can choose immediately.
+      if (!activeProject) await openProjectPopup();
     }
 
-    async function renderCameraProjectStrip() {
-      const strip = document.getElementById('cam-project-strip');
-      strip.innerHTML = '';
+    // ----- Project picker popup -----
+    async function openProjectPopup() {
+      const popup = document.getElementById('cam-project-popup');
+      popup.innerHTML = '';
 
       const dbProjects = await getProjectNames();
       const all = [...new Set([...dbProjects, ...pendingNewProjects])];
 
-      all.forEach(name => {
-        const chip = document.createElement('button');
-        chip.className = 'cam-proj-chip';
-        if (activeProject === name) chip.classList.add('active');
-        chip.textContent = name;
-        chip.addEventListener('click', () => {
-          activeProject = name;
-          updateCameraModeUI();
-          // Centre the chosen chip in the strip.
-          chip.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+      if (all.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'empty';
+        empty.textContent = 'No projects yet.';
+        popup.appendChild(empty);
+      } else {
+        all.forEach(name => {
+          const item = document.createElement('div');
+          item.className = 'item';
+          if (activeProject === name) item.classList.add('active');
+          item.textContent = name;
+          item.addEventListener('click', () => {
+            activeProject = name;
+            captureMode = 'project';
+            closeProjectPopup();
+            updateCameraModeUI();
+          });
+          popup.appendChild(item);
         });
-        strip.appendChild(chip);
-      });
+      }
 
-      const addChip = document.createElement('button');
-      addChip.className = 'cam-proj-chip new';
-      addChip.textContent = '+ New';
-      addChip.addEventListener('click', addInlineProject);
-      strip.appendChild(addChip);
+      const addItem = document.createElement('div');
+      addItem.className = 'item new';
+      addItem.textContent = '+ New project';
+      addItem.addEventListener('click', addInlineProject);
+      popup.appendChild(addItem);
+
+      popup.hidden = false;
     }
+
+    function closeProjectPopup() {
+      document.getElementById('cam-project-popup').hidden = true;
+    }
+
+    document.getElementById('cam-project-trigger').addEventListener('click', async () => {
+      const popup = document.getElementById('cam-project-popup');
+      if (!popup.hidden) {
+        closeProjectPopup();
+        return;
+      }
+      // Always open the picker; if currently in reference mode, switch to project on pick.
+      await openProjectPopup();
+    });
+
+    // Tap outside the popup to dismiss.
+    document.addEventListener('click', (e) => {
+      const popup = document.getElementById('cam-project-popup');
+      if (popup.hidden) return;
+      const trigger = document.getElementById('cam-project-trigger');
+      if (popup.contains(e.target) || trigger.contains(e.target)) return;
+      closeProjectPopup();
+    });
 
     async function addInlineProject() {
       const raw = prompt('Project name');
@@ -1226,8 +1335,34 @@
       const finalName = match || name;
       if (!match) pendingNewProjects.push(finalName);
       activeProject = finalName;
+      captureMode = 'project';
+      closeProjectPopup();
       updateCameraModeUI();
     }
+
+    // ----- Gallery thumbnail (bottom-left) -----
+    let camThumbUrl = null;
+    async function refreshCameraThumb() {
+      const all = await dbGetAll();
+      const thumb = document.getElementById('cam-thumb');
+      if (!thumb) return;
+      if (all.length === 0) {
+        if (camThumbUrl) { URL.revokeObjectURL(camThumbUrl); camThumbUrl = null; }
+        thumb.style.backgroundImage = '';
+        thumb.classList.add('empty');
+        return;
+      }
+      const latest = all.reduce((a, b) => (a.created_at > b.created_at ? a : b));
+      if (camThumbUrl) URL.revokeObjectURL(camThumbUrl);
+      camThumbUrl = URL.createObjectURL(latest.blob);
+      thumb.style.backgroundImage = `url("${camThumbUrl}")`;
+      thumb.classList.remove('empty');
+    }
+
+    document.getElementById('cam-thumb').addEventListener('click', async () => {
+      showView('gallery');
+      await renderGallery();
+    });
 
     async function shutterPressed() {
       if (captureMode === 'project' && !activeProject) {
@@ -2037,6 +2172,7 @@
 
       // Stay in the camera, restart location capture for the next shot.
       startLocationCapture();
+      await refreshCameraThumb();
       toast('Saved to ' + activeProject);
     }
 
