@@ -238,14 +238,38 @@
       gap: 0.7rem;
       z-index: 10;
     }
-    .cam-active-project {
+    .cam-project-strip {
+      display: flex;
+      gap: 0.4rem;
+      padding: 0 1rem;
+      overflow-x: auto;
+      max-width: 100vw;
+      scroll-snap-type: x proximity;
+      scrollbar-width: none;
+      -webkit-overflow-scrolling: touch;
+    }
+    .cam-project-strip::-webkit-scrollbar { display: none; }
+    .cam-project-strip .cam-proj-chip {
+      flex-shrink: 0;
+      scroll-snap-align: center;
+      padding: 0.45rem 0.95rem;
+      font-size: 0.9rem;
+      line-height: 1;
+      border-radius: 999px;
       background: rgba(0,0,0,0.55);
       backdrop-filter: blur(6px);
       -webkit-backdrop-filter: blur(6px);
       color: #fff;
-      padding: 0.35rem 0.85rem;
-      border-radius: 999px;
-      font-size: 0.85rem;
+      white-space: nowrap;
+    }
+    .cam-project-strip .cam-proj-chip.active {
+      background: #fff;
+      color: #000;
+      font-weight: 600;
+    }
+    .cam-project-strip .cam-proj-chip.new {
+      color: #d6d6d6;
+      font-style: italic;
     }
     .cam-shutter {
       width: 76px;
@@ -254,11 +278,15 @@
       background: #fff;
       border: 4px solid rgba(255,255,255,0.55);
       box-shadow: 0 0 0 1px rgba(0,0,0,0.2);
-      transition: transform 0.07s ease;
+      transition: transform 0.07s ease, opacity 0.15s ease;
       position: relative;
       z-index: 12;
     }
     .cam-shutter:active { transform: scale(0.92); background: #ddd; }
+    .cam-shutter.disabled {
+      opacity: 0.35;
+      pointer-events: none;
+    }
 
     .cam-flip-btn {
       position: absolute;
@@ -682,39 +710,6 @@
     </div>
   </section>
 
-  <!-- ============ PROJECT PICKER ============ -->
-  <section id="view-project" class="view">
-    <header class="gallery-header">
-      <button class="back-btn" data-goto="home">&larr;</button>
-      <span class="meta-date">Project</span>
-    </header>
-    <div style="padding: 0 1rem; display:flex; flex-direction:column; gap:0.75rem;">
-      <p class="step-question" style="margin-top:0.5rem;">Which project?</p>
-      <div id="project-chips" class="chip-row"></div>
-      <div class="form-field" style="margin-bottom:0;">
-        <label class="form-label">New project</label>
-        <input id="new-project-input" class="form-input" type="text" placeholder="e.g. Villa H, Client A, Site visit">
-      </div>
-      <div class="capture-actions">
-        <button class="btn-primary" id="project-start">Start</button>
-      </div>
-    </div>
-  </section>
-
-  <!-- ============ PROJECT SESSION ============ -->
-  <section id="view-project-session" class="view">
-    <div style="padding: 2rem 1rem; flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1.25rem; text-align:center;">
-      <p class="step-question" style="margin:0;">Project</p>
-      <p id="project-session-name" style="margin:0; font-size:1.2rem; font-weight:600;"></p>
-      <img id="project-session-thumb" style="max-width:70%; max-height:35vh; object-fit:contain; border-radius:12px; background:#222;" alt="">
-      <p style="color:#888; font-size:0.85rem; margin:0;">Saved.</p>
-      <div class="capture-actions" style="width:100%; max-width:320px;">
-        <button class="btn-secondary" id="project-session-done">Done</button>
-        <button class="btn-primary" id="project-session-another">Take another</button>
-      </div>
-    </div>
-  </section>
-
   <!-- ============ HOME = CAMERA (custom getUserMedia camera) ============ -->
   <section id="view-camera" class="view active">
     <video id="cam-video" class="cam-video" playsinline webkit-playsinline autoplay muted></video>
@@ -728,7 +723,7 @@
     </div>
     <button class="cam-pill cam-icon cam-flip-btn" id="cam-flip" aria-label="Switch camera">&#8634;</button>
     <div class="cam-bottom">
-      <div class="cam-active-project" id="cam-active-project" hidden></div>
+      <div class="cam-project-strip" id="cam-project-strip" hidden></div>
       <button class="cam-shutter" id="cam-shutter" aria-label="Take photo"></button>
     </div>
     <div class="cam-error" id="cam-error" hidden></div>
@@ -855,7 +850,6 @@
     // Home-path state: which mode the next camera tap is in
     let captureMode = 'reference';  // 'reference' | 'project'
     let activeProject = null;
-    let projectThumbUrl = null;
 
     // Location captured async between tapping the camera button and saving.
     let pendingLocation = null;     // { lat, lng, accuracy } or null
@@ -1162,16 +1156,22 @@
       btn.addEventListener('click', () => switchCameraMode(btn.dataset.camMode));
     });
 
+    // Projects the user typed in this session but hasn't saved a photo into yet.
+    let pendingNewProjects = [];
+
     function updateCameraModeUI() {
       document.querySelectorAll('[data-cam-mode]').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.camMode === captureMode);
       });
-      const tag = document.getElementById('cam-active-project');
-      if (captureMode === 'project' && activeProject) {
-        tag.hidden = false;
-        tag.textContent = activeProject;
+      const strip = document.getElementById('cam-project-strip');
+      const shutter = document.getElementById('cam-shutter');
+      if (captureMode === 'project') {
+        strip.hidden = false;
+        renderCameraProjectStrip();
+        shutter.classList.toggle('disabled', !activeProject);
       } else {
-        tag.hidden = true;
+        strip.hidden = true;
+        shutter.classList.remove('disabled');
       }
     }
 
@@ -1182,27 +1182,65 @@
         updateCameraModeUI();
         return;
       }
-      // mode === 'project'
-      if (activeProject) {
-        captureMode = 'project';
-        updateCameraModeUI();
-      } else {
-        // Need to pick a project first; bounce to picker, then come back into camera.
-        stopCameraStream();
-        await renderProjectPicker();
-        showView('project');
-      }
+      // mode === 'project' — stay in camera, show inline project chips.
+      captureMode = 'project';
+      updateCameraModeUI();
+    }
+
+    async function renderCameraProjectStrip() {
+      const strip = document.getElementById('cam-project-strip');
+      strip.innerHTML = '';
+
+      const dbProjects = await getProjectNames();
+      const all = [...new Set([...dbProjects, ...pendingNewProjects])];
+
+      all.forEach(name => {
+        const chip = document.createElement('button');
+        chip.className = 'cam-proj-chip';
+        if (activeProject === name) chip.classList.add('active');
+        chip.textContent = name;
+        chip.addEventListener('click', () => {
+          activeProject = name;
+          updateCameraModeUI();
+          // Centre the chosen chip in the strip.
+          chip.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        });
+        strip.appendChild(chip);
+      });
+
+      const addChip = document.createElement('button');
+      addChip.className = 'cam-proj-chip new';
+      addChip.textContent = '+ New';
+      addChip.addEventListener('click', addInlineProject);
+      strip.appendChild(addChip);
+    }
+
+    async function addInlineProject() {
+      const raw = prompt('Project name');
+      if (raw == null) return;
+      const name = raw.trim();
+      if (!name) return;
+      const existing = await getProjectNames();
+      const all = [...existing, ...pendingNewProjects];
+      const match = all.find(p => p.toLowerCase() === name.toLowerCase());
+      const finalName = match || name;
+      if (!match) pendingNewProjects.push(finalName);
+      activeProject = finalName;
+      updateCameraModeUI();
     }
 
     async function shutterPressed() {
-      toast('Capturing…');
+      if (captureMode === 'project' && !activeProject) {
+        toast('Pick or add a project first');
+        return;
+      }
       const blob = await captureFrame();
       if (!blob) return;
-      const mode = captureMode;
-      stopCameraStream();
-      if (mode === 'project') {
+      if (captureMode === 'project') {
+        // Stay in the camera so the user can immediately shoot the next photo.
         await savePhotoToProject(blob);
       } else {
+        stopCameraStream();
         startReferenceTagging(blob);
       }
     }
@@ -1964,54 +2002,6 @@
       return [...seen.keys()];
     }
 
-    async function renderProjectPicker() {
-      const projects = await getProjectNames();
-      const chips = document.getElementById('project-chips');
-      const input = document.getElementById('new-project-input');
-
-      chips.innerHTML = '';
-      projects.forEach(p => {
-        const c = document.createElement('button');
-        c.className = 'chip';
-        c.textContent = p;
-        c.addEventListener('click', () => {
-          chips.querySelectorAll('.chip').forEach(x => x.classList.remove('active'));
-          c.classList.add('active');
-          input.value = p;
-          updateStartButton();
-        });
-        chips.appendChild(c);
-      });
-
-      input.value = '';
-      activeProject = null;
-      updateStartButton();
-    }
-
-    function updateStartButton() {
-      const name = document.getElementById('new-project-input').value.trim();
-      const btn = document.getElementById('project-start');
-      btn.disabled = !name;
-      btn.style.opacity = name ? '1' : '0.4';
-    }
-
-    document.getElementById('new-project-input').addEventListener('input', () => {
-      // Typing into the input clears any chip selection
-      document.querySelectorAll('#project-chips .chip').forEach(x => x.classList.remove('active'));
-      updateStartButton();
-    });
-
-    document.getElementById('project-start').addEventListener('click', async () => {
-      const raw = document.getElementById('new-project-input').value.trim();
-      if (!raw) return;
-      const existing = await getProjectNames();
-      const match = existing.find(p => p.toLowerCase() === raw.toLowerCase());
-      activeProject = match || raw;
-      captureMode = 'project';
-      startLocationCapture();
-      showView('camera');
-    });
-
     async function savePhotoToProject(file) {
       const record = {
         blob: file,
@@ -2042,29 +2032,13 @@
       record.search_text = buildSearchText(record);
       await dbAdd(record);
 
-      if (projectThumbUrl) URL.revokeObjectURL(projectThumbUrl);
-      projectThumbUrl = URL.createObjectURL(file);
-      document.getElementById('project-session-thumb').src = projectThumbUrl;
-      document.getElementById('project-session-name').textContent = activeProject;
-      showView('project-session');
+      // The project now exists in the DB; drop it from the pending list if present.
+      pendingNewProjects = pendingNewProjects.filter(p => p !== activeProject);
+
+      // Stay in the camera, restart location capture for the next shot.
+      startLocationCapture();
       toast('Saved to ' + activeProject);
     }
-
-    document.getElementById('project-session-another').addEventListener('click', () => {
-      // captureMode and activeProject remain; reopen the live camera
-      startLocationCapture();
-      showView('camera');
-    });
-
-    document.getElementById('project-session-done').addEventListener('click', () => {
-      activeProject = null;
-      captureMode = 'reference';
-      if (projectThumbUrl) {
-        URL.revokeObjectURL(projectThumbUrl);
-        projectThumbUrl = null;
-      }
-      showView('home');
-    });
 
     // ============================================================
     // GALLERY
