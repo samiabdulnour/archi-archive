@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>archi-archive — Design Review</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="deck-stage.js"></script>
+<style>
+  :root{
+    --bg:#111110;
+    --bg-2:#1a1a18;
+    --bg-3:#222220;
+    --ink:#ECEAE4;
+    --ink-2:#A8A49B;
+    --ink-3:#6E6A62;
+    --rule:#2a2a26;
+    --warm: oklch(0.72 0.08 35);   /* coral – problems */
+    --cool: oklch(0.72 0.08 165);  /* sage  – recommendations */
+    --paper:#F2EEE6;
+  }
+  html,body{margin:0;padding:0;background:#000;}
+  deck-stage{font-family:'Inter',system-ui,sans-serif;color:var(--ink);}
+  section{
+    background:var(--bg);
+    color:var(--ink);
+    padding:100px;
+    display:flex;
+    flex-direction:column;
+    overflow:hidden;
+  }
+  /* ---------- Type system ---------- */
+  .eyebrow{
+    font-family:'JetBrains Mono',monospace;
+    font-size:24px;
+    letter-spacing:0.18em;
+    text-transform:uppercase;
+    color:var(--ink-3);
+    margin:0;
+  }
+  h1.deck-title{
+    font-family:'Inter';
+    font-weight:300;
+    font-size:128px;
+    line-height:1.02;
+    letter-spacing:-0.03em;
+    margin:0;
+  }
+  h2.title{
+    font-family:'Inter';
+    font-weight:400;
+    font-size:64px;
+    line-height:1.1;
+    letter-spacing:-0.02em;
+    margin:0;
+  }
+  h3.subtitle{
+    font-family:'Inter';
+    font-weight:400;
+    font-size:44px;
+    line-height:1.2;
+    letter-spacing:-0.01em;
+    color:var(--ink-2);
+    margin:0;
+  }
+  p, li{
+    font-size:34px;
+    line-height:1.4;
+    color:var(--ink);
+    margin:0;
+    text-wrap:pretty;
+  }
+  .small{font-size:28px;color:var(--ink-2);}
+  .mono{font-family:'JetBrains Mono',monospace;}
+  hr.rule{border:0;border-top:1px solid var(--rule);width:100%;margin:0;}
+
+  /* ---------- Layout helpers ---------- */
+  .row{display:flex;gap:52px;}
+  .col{display:flex;flex-direction:column;gap:28px;}
+  .grow{flex:1;}
+  .gap-sm{gap:14px;}
+  .gap-md{gap:28px;}
+  .gap-lg{gap:52px;}
+
+  .pill{
+    display:inline-flex;align-items:center;gap:12px;
+    padding:8px 18px;
+    border:1px solid var(--rule);
+    border-radius:999px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:24px;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    color:var(--ink-2);
+  }
+  .dot{width:10px;height:10px;border-radius:50%;background:var(--ink-3);}
+  .dot.warm{background:var(--warm);}
+  .dot.cool{background:var(--cool);}
+
+  /* slide number footer */
+  .footer{
+    position:absolute;
+    left:100px;right:100px;bottom:40px;
+    display:flex;justify-content:space-between;
+    font-family:'JetBrains Mono',monospace;
+    font-size:24px;
+    color:var(--ink-3);
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+  }
+
+  /* ---------- Phone mock ---------- */
+  .phone{
+    width:430px;
+    height:880px;
+    border-radius:54px;
+    background:#000;
+    padding:14px;
+    box-shadow:0 0 0 1px var(--rule), 0 30px 60px rgba(0,0,0,0.6);
+    flex-shrink:0;
+  }
+  .phone-screen{
+    width:100%;height:100%;
+    background:#111;
+    border-radius:42px;
+    overflow:hidden;
+    position:relative;
+    display:flex;flex-direction:column;
+    color:#eee;
+    font-family:-apple-system,system-ui,sans-serif;
+  }
+  .status-bar{
+    height:48px;display:flex;align-items:center;justify-content:space-between;
+    padding:14px 32px 0;font-size:18px;font-weight:600;color:#eee;
+  }
+  .ph-pad{padding:24px;}
+  .ph-stack{display:flex;flex-direction:column;gap:14px;}
+
+  /* original-app reproductions */
+  .home-h1{font-size:14px;font-weight:500;letter-spacing:0.2em;text-transform:uppercase;color:#888;margin:0;text-align:center;}
+  .take-photo{
+    width:100%;padding:20px;border-radius:999px;background:#fff;color:#111;
+    font-size:18px;font-weight:600;text-align:center;
+  }
+  .link-button{
+    padding:12px 20px;font-size:15px;color:#aaa;border:1px solid #333;border-radius:999px;background:transparent;text-align:center;
+  }
+  .step-q{font-size:13px;letter-spacing:0.15em;text-transform:uppercase;color:#888;margin:0;text-align:center;}
+  .group-label{font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#666;margin:0;}
+  .type-btn{
+    padding:16px;background:#222;border:1px solid #333;border-radius:14px;color:#eee;text-align:left;
+  }
+  .type-btn strong{display:block;font-weight:600;font-size:18px;margin-bottom:2px;}
+  .type-btn span{color:#888;font-size:13px;}
+  .chip{
+    padding:8px 14px;border-radius:999px;background:transparent;border:1px solid #333;color:#ccc;
+    font-size:14px;display:inline-block;
+  }
+  .chip.on{background:#eee;color:#111;border-color:#eee;}
+  .chip-row{display:flex;flex-wrap:wrap;gap:6px;}
+  .formfield{display:flex;flex-direction:column;gap:6px;}
+  .formfield label{font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#888;}
+  .formfield input{padding:11px 14px;border-radius:10px;background:#1a1a1a;border:1px solid #333;color:#eee;font-size:16px;}
+
+  /* ---------- Annotations ---------- */
+  .anno{
+    position:relative;
+    background:transparent;
+  }
+  .callout{
+    border-left:3px solid var(--warm);
+    padding:8px 0 8px 24px;
+  }
+  .callout.cool{border-color:var(--cool);}
+  .callout .lbl{
+    font-family:'JetBrains Mono',monospace;
+    font-size:24px;letter-spacing:0.12em;text-transform:uppercase;
+    color:var(--warm);margin:0 0 6px;
+  }
+  .callout.cool .lbl{color:var(--cool);}
+  .callout p{font-size:26px;line-height:1.35;color:var(--ink);margin:0;}
+
+  /* ---------- Numbered list ---------- */
+  .num-list{display:flex;flex-direction:column;gap:32px;}
+  .num-item{display:flex;gap:28px;align-items:flex-start;}
+  .num{
+    font-family:'JetBrains Mono',monospace;
+    font-size:28px;color:var(--ink-3);min-width:60px;
+    padding-top:6px;
+  }
+  .num-item h4{font-family:'Inter';font-weight:500;font-size:36px;margin:0 0 8px;line-height:1.2;letter-spacing:-0.01em;}
+  .num-item p{font-size:28px;color:var(--ink-2);line-height:1.4;}
+
+  /* ---------- Cover ---------- */
+  .cover{justify-content:space-between;}
+  .cover-mark{
+    width:120px;height:120px;border-radius:50%;
+    border:1px solid var(--ink);
+    display:flex;align-items:center;justify-content:center;
+    font-family:'JetBrains Mono',monospace;font-size:28px;color:var(--ink);
+  }
+  .meta-grid{display:grid;grid-template-columns:auto 1fr;column-gap:48px;row-gap:14px;}
+  .meta-grid dt{font-family:'JetBrains Mono',monospace;font-size:24px;letter-spacing:0.1em;text-transform:uppercase;color:var(--ink-3);}
+  .meta-grid dd{margin:0;font-size:28px;color:var(--ink);}
+
+  /* ---------- Section header ---------- */
+  .section-hdr{justify-content:center;align-items:flex-start;background:var(--bg-2);}
+  .section-hdr .num-big{
+    font-family:'JetBrains Mono',monospace;
+    font-size:28px;color:var(--ink-3);letter-spacing:0.1em;
+  }
+
+  /* ---------- Quote ---------- */
+  .quote-slide{justify-content:center;background:var(--paper);color:#1a1a18;}
+  .quote-slide blockquote{
+    font-family:'Inter';font-weight:300;font-size:72px;line-height:1.15;letter-spacing:-0.02em;
+    margin:0;color:#1a1a18;max-width:1500px;
+  }
+  .quote-slide .src{font-family:'JetBrains Mono',monospace;font-size:26px;letter-spacing:0.1em;text-transform:uppercase;color:#6E6A62;margin-top:48px;}
+
+  /* ---------- Diagram pieces ---------- */
+  .flow-box{
+    border:1px solid var(--rule);
+    border-radius:14px;
+    padding:24px 28px;
+    background:var(--bg-2);
+    min-width:240px;
+  }
+  .flow-box .lbl{font-family:'JetBrains Mono',monospace;font-size:24px;color:var(--ink-3);letter-spacing:0.12em;text-transform:uppercase;margin:0 0 8px;}
+  .flow-box .nm{font-size:30px;font-weight:500;margin:0;letter-spacing:-0.01em;}
+  .arrow{
+    align-self:center;color:var(--ink-3);font-family:'JetBrains Mono',monospace;font-size:28px;
+  }
+
+  /* tap counter */
+  .taps{display:flex;gap:8px;flex-wrap:wrap;}
+  .tap-dot{width:32px;height:32px;border-radius:50%;border:1px solid var(--ink-3);}
+  .tap-dot.fill{background:var(--warm);border-color:var(--warm);}
+  .tap-dot.fill-cool{background:var(--cool);border-color:var(--cool);}
+
+  /* ---------- Sketch placeholders ---------- */
+  .sketch{
+    background:repeating-linear-gradient(
+      45deg,
+      var(--bg-2),
+      var(--bg-2) 8px,
+      var(--bg-3) 8px,
+      var(--bg-3) 16px
+    );
+    border:1px solid var(--rule);
+    border-radius:14px;
+    display:flex;align-items:center;justify-content:center;
+    font-family:'JetBrains Mono',monospace;
+    font-size:22px;color:var(--ink-2);
+    text-align:center;padding:24px;
+  }
+
+  /* radial menu */
+  .radial{
+    width:520px;height:520px;border-radius:50%;
+    background:radial-gradient(closest-side,#1a1a18 0%, #1a1a18 60%, transparent 61%);
+    position:relative;
+    flex-shrink:0;
+  }
+  .radial .center{
+    position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+    width:120px;height:120px;border-radius:50%;
+    background:#fff;color:#111;display:flex;align-items:center;justify-content:center;
+    font-weight:600;font-size:22px;
+  }
+  .radial .pet{
+    position:absolute;width:160px;height:80px;border-radius:999px;
+    background:var(--bg-3);border:1px solid var(--rule);
+    display:flex;align-items:center;justify-content:center;
+    font-size:24px;color:var(--ink);
+  }
+  .radial .pet.p1{left:50%;top:30px;transform:translateX(-50%);}
+  .radial .pet.p2{right:0;top:50%;transform:translateY(-50%);}
+  .radial .pet.p3{left:50%;bottom:30px;transform:translateX(-50%);}
+  .radial .pet.p4{left:0;top:50%;transform:translateY(-50%);}
+
+  /* sheet variant */
+  .sheet-phone .sheet{
+    position:absolute;left:0;right:0;bottom:0;
+    background:#1a1a18;
+    border-top-left-radius:24px;border-top-right-radius:24px;
+    padding:20px 24px 32px;
+    display:flex;flex-direction:column;gap:14px;
+    box-shadow:0 -10px 30px rgba(0,0,0,0.4);
+  }
+  .sheet-phone .grab{width:48px;height:5px;background:#444;border-radius:999px;align-self:center;}
+  .big-pick{
+    display:flex;align-items:center;gap:14px;
+    padding:18px;border-radius:14px;background:#222;border:1px solid #333;
+  }
+  .big-pick .glyph{width:44px;height:44px;border-radius:10px;background:#333;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:18px;color:#ccc;}
+  .big-pick strong{font-size:18px;font-weight:600;display:block;}
+  .big-pick span{font-size:13px;color:#888;}
+
+  /* swatches */
+  .swatch{display:flex;align-items:center;gap:18px;}
+  .sw{width:40px;height:40px;border-radius:8px;border:1px solid var(--rule);}
+
+  /* connector line for callout */
+  .with-line{display:flex;align-items:flex-start;gap:32px;}
+  .with-line .lead{
+    width:80px;height:2px;background:var(--warm);margin-top:36px;
+  }
+  .with-line.cool .lead{background:var(--cool);}
+
+</style>
+</head>
+<body>
+
+<script type="application/json" id="speaker-notes">
+[]
+</script>
+
+<deck-stage width="1920" height="1080">
+
+  <!-- 1 — COVER -->
+  <section data-label="01 Cover" class="cover">
+    <div class="row" style="justify-content:space-between;align-items:flex-start;">
+      <p class="eyebrow">Design Review · April 2026</p>
+      <div class="cover-mark">A·A</div>
+    </div>
+    <div class="col" style="gap:36px;">
+      <h1 class="deck-title">archi-archive.<br><span style="color:var(--ink-2);">A second look at<br>the capture flow.</span></h1>
+    </div>
+    <div class="row" style="justify-content:space-between;align-items:flex-end;">
+      <dl class="meta-grid">
+        <dt>For</dt><dd>Sami</dd>
+        <dt>Subject</dt><dd>iPhone capture & menu UX</dd>
+        <dt>Status</dt><dd>Stage 1 build, in progress</dd>
+      </dl>
+      <p class="mono small">01 / 16</p>
+    </div>
+  </section>
+
+  <!-- 2 — Product, in one line -->
+  <section data-label="02 Product">
+    <p class="eyebrow">The product</p>
+    <div style="margin-top:60px;max-width:1500px;">
+      <h2 class="title" style="font-size:88px;font-weight:300;line-height:1.1;">
+        A private photo journal for an architect — capture in under <span style="color:var(--cool);">10&nbsp;seconds</span> on the sidewalk, browse later by tag.
+      </h2>
+    </div>
+    <hr class="rule" style="margin-top:80px;">
+    <div class="row" style="margin-top:40px;">
+      <p class="small mono">CLAUDE.md, Goals</p>
+      <p class="small" style="max-width:1100px;">"Tap one button, take photo, tag in 2 taps, done. Typing on a phone while standing on a sidewalk is the enemy."</p>
+    </div>
+  </section>
+
+  <!-- 3 — What I reviewed -->
+  <section data-label="03 Scope">
+    <p class="eyebrow">What I reviewed</p>
+    <h2 class="title" style="margin-top:40px;">Three artifacts, one question.</h2>
+    <div class="row" style="margin-top:80px;gap:32px;">
+      <div class="flow-box grow">
+        <p class="lbl">01 — Spec</p>
+        <p class="nm">CLAUDE.md</p>
+        <p class="small" style="margin-top:14px;">Stated goals & taxonomy promise.</p>
+      </div>
+      <div class="flow-box grow">
+        <p class="lbl">02 — Build</p>
+        <p class="nm">index.html</p>
+        <p class="small" style="margin-top:14px;">~1,000 lines, four views, IndexedDB.</p>
+      </div>
+      <div class="flow-box grow">
+        <p class="lbl">03 — Sketch</p>
+        <p class="nm">Your napkin</p>
+        <p class="small" style="margin-top:14px;">Direction notes from this morning.</p>
+      </div>
+    </div>
+    <hr class="rule" style="margin-top:80px;">
+    <p class="small" style="margin-top:36px;max-width:1400px;">
+      Question: <span style="color:var(--ink);">does the live capture menu honour the "two taps, ten seconds" promise?</span>
+    </p>
+  </section>
+
+  <!-- 4 — Capture flow today -->
+  <section data-label="04 Flow Today">
+    <p class="eyebrow">Capture flow — today</p>
+    <h2 class="title" style="margin-top:24px;">Five screens, branching at step two.</h2>
+    <div class="row" style="margin-top:80px;align-items:stretch;gap:20px;">
+      <div class="flow-box" style="min-width:200px;">
+        <p class="lbl">01</p><p class="nm">Home</p>
+        <p class="small" style="margin-top:8px;">"Take photo"</p>
+      </div>
+      <div class="arrow">→</div>
+      <div class="flow-box" style="min-width:200px;">
+        <p class="lbl">02</p><p class="nm">Type</p>
+        <p class="small" style="margin-top:8px;">Building / Element / Graphic</p>
+      </div>
+      <div class="arrow">→</div>
+      <div class="flow-box" style="min-width:240px;border-color:var(--warm);">
+        <p class="lbl" style="color:var(--warm);">03 — Branches</p>
+        <p class="nm">Typology<br>· or ·<br>Element<br>· or ·<br>Graphic kind</p>
+      </div>
+      <div class="arrow">→</div>
+      <div class="flow-box" style="min-width:200px;border-color:var(--warm);">
+        <p class="lbl" style="color:var(--warm);">04 — Maybe</p>
+        <p class="nm">Artwork details</p>
+        <p class="small" style="margin-top:8px;">4 text fields</p>
+      </div>
+      <div class="arrow">→</div>
+      <div class="flow-box" style="min-width:200px;">
+        <p class="lbl">05</p><p class="nm">Saved</p>
+      </div>
+    </div>
+    <hr class="rule" style="margin-top:80px;">
+    <div class="row" style="margin-top:36px;gap:60px;">
+      <div class="col gap-sm">
+        <p class="small mono" style="color:var(--ink-3);">Promised taps</p>
+        <div class="taps"><div class="tap-dot fill-cool"></div><div class="tap-dot fill-cool"></div></div>
+      </div>
+      <div class="col gap-sm">
+        <p class="small mono" style="color:var(--ink-3);">Actual minimum taps</p>
+        <div class="taps">
+          <div class="tap-dot fill"></div><div class="tap-dot fill"></div><div class="tap-dot fill"></div>
+        </div>
+      </div>
+      <div class="col gap-sm">
+        <p class="small mono" style="color:var(--ink-3);">Worst case (Artwork)</p>
+        <div class="taps">
+          <div class="tap-dot fill"></div><div class="tap-dot fill"></div><div class="tap-dot fill"></div><div class="tap-dot fill"></div>
+          <div class="tap-dot fill"></div><div class="tap-dot fill"></div><div class="tap-dot fill"></div><div class="tap-dot fill"></div>
+          <div class="tap-dot fill"></div><div class="tap-dot fill"></div><div class="tap-dot fill"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 — Menu problem in one screen -->
+  <section data-label="05 Menu Problem">
+    <p class="eyebrow">The menu, today</p>
+    <h2 class="title" style="margin-top:24px;">Three different menu shapes in one flow.</h2>
+    <div class="row" style="margin-top:60px;gap:48px;align-items:flex-start;">
+      <!-- phone 1: type step -->
+      <div class="phone"><div class="phone-screen">
+        <div class="status-bar"><span>9:41</span><span>●●●</span></div>
+        <div class="ph-pad ph-stack">
+          <div class="sketch" style="height:200px;">[ photo just taken ]</div>
+          <p class="step-q">What is this?</p>
+          <button class="type-btn"><strong>Building</strong><span>A whole building or space</span></button>
+          <button class="type-btn"><strong>Element</strong><span>A part or detail (railing, stair…)</span></button>
+          <button class="type-btn"><strong>Graphic</strong><span>Flat: artwork, book, drawing…</span></button>
+        </div>
+      </div></div>
+
+      <!-- phone 2: element step -->
+      <div class="phone"><div class="phone-screen">
+        <div class="status-bar"><span>9:41</span><span>●●●</span></div>
+        <div class="ph-pad ph-stack">
+          <p class="step-q">Which element?</p>
+          <p class="group-label">Structural</p>
+          <div class="chip-row">
+            <span class="chip">Column</span><span class="chip">Beam</span><span class="chip">Wall</span><span class="chip">Arch</span><span class="chip">Vault</span><span class="chip">Dome</span><span class="chip">Truss</span>
+          </div>
+          <p class="group-label">Circulation</p>
+          <div class="chip-row">
+            <span class="chip">Door</span><span class="chip">Window</span><span class="chip">Stair</span><span class="chip">Ramp</span><span class="chip">Corridor</span><span class="chip">Threshold</span><span class="chip">Balcony</span>
+          </div>
+          <p class="group-label">Enclosure</p>
+          <div class="chip-row">
+            <span class="chip">Roof</span><span class="chip">Ceiling</span><span class="chip">Floor</span><span class="chip">Facade</span>
+          </div>
+        </div>
+      </div></div>
+
+      <!-- phone 3: artwork detail step -->
+      <div class="phone"><div class="phone-screen">
+        <div class="status-bar"><span>9:41</span><span>●●●</span></div>
+        <div class="ph-pad ph-stack">
+          <p class="step-q">Artwork details (optional)</p>
+          <div class="big-pick"><div class="glyph">+</div><div><strong>Add label photo</strong><span>Optional</span></div></div>
+          <div class="formfield"><label>Title</label><input value=""></div>
+          <div class="formfield"><label>Artist</label><input value=""></div>
+          <div class="formfield"><label>Year</label><input value=""></div>
+          <div class="formfield"><label>Source / Where</label><input value=""></div>
+        </div>
+      </div></div>
+    </div>
+    <p class="small mono" style="position:absolute;left:100px;bottom:60px;color:var(--ink-3);">
+      Same flow, three different mental models — large cards, dense chips, then a keyboard form.
+    </p>
+  </section>
+
+  <!-- 6 — Five issues -->
+  <section data-label="06 Five Issues" class="section-hdr">
+    <div class="col" style="gap:40px;margin-top:80px;">
+      <p class="num-big">02 — DIAGNOSIS</p>
+      <h2 class="title" style="font-size:104px;font-weight:300;">Five issues with<br>the current taxonomy UI.</h2>
+      <p class="subtitle" style="max-width:1300px;">Listed in order of how much they hurt the "ten-second sidewalk" promise.</p>
+    </div>
+  </section>
+
+  <!-- 7 — Issue 1 -->
+  <section data-label="07 Issue 1">
+    <p class="eyebrow"><span class="dot warm" style="display:inline-block;vertical-align:middle;margin-right:14px;"></span>Issue 01 of 05</p>
+    <h2 class="title" style="margin-top:24px;">Two questions promised, eleven taps possible.</h2>
+    <div class="row" style="margin-top:60px;gap:60px;align-items:flex-start;">
+      <div class="col grow gap-md" style="max-width:900px;">
+        <p>The spec says two taps: Kind, then Context. The build asks Type → branch → maybe-detail, with chip groups that read like a taxonomy tree, not a quick gesture.</p>
+        <div class="callout">
+          <p class="lbl">Symptom</p>
+          <p>For a graphic/artwork capture, the user faces a card list, a chip grid, then a four-field form with the keyboard up — before the photo is even saved.</p>
+        </div>
+        <div class="callout">
+          <p class="lbl">Why it matters</p>
+          <p>The architect is walking. Each extra screen is another chance to give up and just leave the photo in the camera roll, untagged.</p>
+        </div>
+      </div>
+      <div class="phone"><div class="phone-screen">
+        <div class="status-bar"><span>9:41</span><span>●●●</span></div>
+        <div class="ph-pad ph-stack">
+          <div class="sketch" style="height:240px;">[ photo ]</div>
+          <p class="step-q">Which element?</p>
+          <p class="group-label">Structural</p>
+          <div class="chip-row"><span class="chip">Column</span><span class="chip">Beam</span><span class="chip">Wall</span><span class="chip">Arch</span><span class="chip">Vault</span><span class="chip">Dome</span><span class="chip">Truss</span></div>
+          <p class="group-label">Circulation</p>
+          <div class="chip-row"><span class="chip">Door</span><span class="chip">Window</span><span class="chip">Stair</span><span class="chip">Ramp</span><span class="chip">Corridor</span></div>
+          <p class="group-label">Enclosure</p>
+          <div class="chip-row"><span class="chip">Roof</span><span class="chip">Ceiling</span><span class="chip">Floor</span><span class="chip">Facade</span></div>
+          <p class="group-label">Ornament</p>
+          <div class="chip-row"><span class="chip">Cornice</span><span class="chip">Railing</span><span class="chip">Joint</span><span class="chip">Pavement</span></div>
+        </div>
+      </div></div>
+    </div>
+  </section>
+
+  <!-- 8 — Issue 2 -->
+  <section data-label="08 Issue 2">
+    <p class="eyebrow"><span class="dot warm" style="display:inline-block;vertical-align:middle;margin-right:14px;"></span>Issue 02 of 05</p>
+    <h2 class="title" style="margin-top:24px;">The second tap is hidden behind the first.</h2>
+    <div class="row" style="margin-top:60px;gap:60px;align-items:flex-start;">
+      <div class="col grow gap-md" style="max-width:900px;">
+        <p>The spec's two-axis grid (Kind × Context) is replaced by a tree where the second axis depends on what you picked first.</p>
+        <div class="callout">
+          <p class="lbl">Consequence</p>
+          <p>You can't see the whole vocabulary at once. Muscle memory never forms because the second screen keeps changing shape.</p>
+        </div>
+        <p class="small" style="color:var(--ink-3);">CLAUDE.md, "Tag vocabulary":</p>
+        <p class="mono small" style="background:var(--bg-2);padding:18px 22px;border-radius:10px;border:1px solid var(--rule);">3 × 4 = 12 coordinates. Two taps per photo.</p>
+      </div>
+      <div class="col gap-md">
+        <p class="small mono" style="color:var(--ink-3);">Promised mental model</p>
+        <div style="display:grid;grid-template-columns:120px repeat(4,140px);gap:8px;">
+          <div></div>
+          <div class="pill" style="justify-content:center;">Travel</div>
+          <div class="pill" style="justify-content:center;">Exhibit</div>
+          <div class="pill" style="justify-content:center;">Making</div>
+          <div class="pill" style="justify-content:center;">Ref</div>
+          <div class="pill" style="justify-content:center;">Space</div>
+          <div class="sketch" style="height:60px;"></div><div class="sketch" style="height:60px;"></div><div class="sketch" style="height:60px;"></div><div class="sketch" style="height:60px;"></div>
+          <div class="pill" style="justify-content:center;">Surface</div>
+          <div class="sketch" style="height:60px;"></div><div class="sketch" style="height:60px;"></div><div class="sketch" style="height:60px;"></div><div class="sketch" style="height:60px;"></div>
+          <div class="pill" style="justify-content:center;">Page</div>
+          <div class="sketch" style="height:60px;"></div><div class="sketch" style="height:60px;"></div><div class="sketch" style="height:60px;"></div><div class="sketch" style="height:60px;"></div>
+        </div>
+        <p class="small" style="color:var(--ink-2);max-width:700px;">12 coordinates, all visible — the user picks one cell, done.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9 — Issue 3 -->
+  <section data-label="09 Issue 3">
+    <p class="eyebrow"><span class="dot warm" style="display:inline-block;vertical-align:middle;margin-right:14px;"></span>Issue 03 of 05</p>
+    <h2 class="title" style="margin-top:24px;">Chips read like form fields, not gestures.</h2>
+    <div class="row" style="margin-top:60px;gap:60px;align-items:flex-start;">
+      <div class="col grow gap-md" style="max-width:900px;">
+        <p>Small grey pills with hairline borders are a desktop pattern. On a phone held one-handed they are precise targets, not bold gestures.</p>
+        <div class="callout">
+          <p class="lbl">Hit-target audit</p>
+          <p>Most chips render at ~32–36 px tall. Apple's HIG and your own goal ("usable while walking") want 44 px minimum, ideally larger for the top-level choices.</p>
+        </div>
+        <div class="callout">
+          <p class="lbl">Visual weight</p>
+          <p>Active and inactive chips look almost the same — a one-pixel border swap. The user has no sense of "I am committing to this."</p>
+        </div>
+      </div>
+      <div class="col gap-md">
+        <p class="small mono" style="color:var(--ink-3);">Today</p>
+        <div class="chip-row" style="background:#111;padding:24px;border-radius:14px;border:1px solid var(--rule);max-width:600px;">
+          <span class="chip">Column</span><span class="chip">Beam</span><span class="chip on">Wall</span><span class="chip">Arch</span><span class="chip">Vault</span><span class="chip">Dome</span>
+        </div>
+        <p class="small mono" style="color:var(--ink-3);margin-top:24px;">Suggested</p>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;background:#111;padding:24px;border-radius:14px;border:1px solid var(--rule);max-width:600px;">
+          <div style="padding:22px;border-radius:14px;background:#222;color:#eee;text-align:center;font-size:22px;">Column</div>
+          <div style="padding:22px;border-radius:14px;background:#222;color:#eee;text-align:center;font-size:22px;">Beam</div>
+          <div style="padding:22px;border-radius:14px;background:#fff;color:#111;text-align:center;font-size:22px;font-weight:600;">Wall</div>
+          <div style="padding:22px;border-radius:14px;background:#222;color:#eee;text-align:center;font-size:22px;">Arch</div>
+          <div style="padding:22px;border-radius:14px;background:#222;color:#eee;text-align:center;font-size:22px;">Vault</div>
+          <div style="padding:22px;border-radius:14px;background:#222;color:#eee;text-align:center;font-size:22px;">Dome</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10 — Issue 4 -->
+  <section data-label="10 Issue 4">
+    <p class="eyebrow"><span class="dot warm" style="display:inline-block;vertical-align:middle;margin-right:14px;"></span>Issue 04 of 05</p>
+    <h2 class="title" style="margin-top:24px;">The artwork detour blocks the save.</h2>
+    <div class="row" style="margin-top:60px;gap:60px;align-items:flex-start;">
+      <div class="col grow gap-md" style="max-width:900px;">
+        <p>Picking <span class="mono">Graphic → Artwork</span> opens a four-field form (Title, Artist, Year, Source) and a "+ Add label photo" affordance — all <em>before</em> the photo is committed to the archive.</p>
+        <div class="callout">
+          <p class="lbl">The trap</p>
+          <p>The user is now typing on a phone, in a museum, in front of the artwork. The very thing the spec calls "the enemy."</p>
+        </div>
+        <div class="callout cool">
+          <p class="lbl">Recommendation</p>
+          <p>Save first. Move artwork details to the detail view, where they are already supported. The capture flow should never branch into a keyboard.</p>
+        </div>
+      </div>
+      <div class="phone"><div class="phone-screen">
+        <div class="status-bar"><span>9:41</span><span>●●●</span></div>
+        <div class="ph-pad ph-stack">
+          <p class="step-q">Artwork details (optional)</p>
+          <div class="big-pick"><div class="glyph">+</div><div><strong>Add label photo</strong></div></div>
+          <div class="formfield"><label>Title</label><input value=""></div>
+          <div class="formfield"><label>Artist</label><input value=""></div>
+          <div class="formfield"><label>Year</label><input value=""></div>
+          <div class="formfield"><label>Source / Where</label><input value=""></div>
+          <div style="display:flex;gap:8px;margin-top:8px;">
+            <button class="link-button" style="flex:1;">Skip</button>
+            <button class="take-photo" style="flex:1;padding:12px;">Save</button>
+          </div>
+        </div>
+      </div></div>
+    </div>
+  </section>
+
+  <!-- 11 — Issue 5 -->
+  <section data-label="11 Issue 5">
+    <p class="eyebrow"><span class="dot warm" style="display:inline-block;vertical-align:middle;margin-right:14px;"></span>Issue 05 of 05</p>
+    <h2 class="title" style="margin-top:24px;">Gallery filters speak a different vocabulary.</h2>
+    <div class="row" style="margin-top:60px;gap:60px;align-items:flex-start;">
+      <div class="col grow gap-md" style="max-width:1000px;">
+        <p>Capture asks for <span class="mono">Building / Element / Graphic</span>. The browse filter offers exactly the same three. But the spec's <em>browsing</em> intent is along Context (Travel, Exhibition, Making, Reference) — which never gets captured.</p>
+        <div class="callout">
+          <p class="lbl">Symptom</p>
+          <p>Two months from now the user wants "everything I shot in Venice on the trip." The data isn't there to filter on.</p>
+        </div>
+        <div class="callout cool">
+          <p class="lbl">Recommendation</p>
+          <p>Either restore the Context tap from CLAUDE.md, or rely on auto-capture (date, GPS) and surface those in the filter row. Currently neither is happening.</p>
+        </div>
+      </div>
+      <div class="col gap-md">
+        <p class="small mono" style="color:var(--ink-3);">Today's filter row</p>
+        <div style="background:#111;padding:24px;border-radius:14px;border:1px solid var(--rule);">
+          <div class="chip-row">
+            <span class="chip on">All</span><span class="chip">Building</span><span class="chip">Element</span><span class="chip">Graphic</span>
+          </div>
+        </div>
+        <p class="small" style="color:var(--ink-2);max-width:600px;">Same axis as capture. Doesn't help when you remember <em>where</em>, not <em>what</em>.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12 — Spec vs build -->
+  <section data-label="12 Spec vs Build" class="quote-slide">
+    <p class="eyebrow" style="color:#6E6A62;">CLAUDE.md, restated</p>
+    <blockquote style="line-height:1.25;">
+      "Tap one button, take photo, <span style="color:var(--cool);">tag in 2&nbsp;taps</span>, done. The whole flow should take <span style="color:var(--cool);">under 10&nbsp;seconds</span>."
+    </blockquote>
+    <p class="src">The build today: 3–11 taps, 2–3 screens, sometimes a keyboard.</p>
+  </section>
+
+  <!-- 13 — Section header: Recommendations -->
+  <section data-label="13 Section Recs" class="section-hdr">
+    <div class="col" style="gap:40px;margin-top:80px;">
+      <p class="num-big">03 — DIRECTION</p>
+      <h2 class="title" style="font-size:104px;font-weight:300;">A return to two taps —<br>and what the menu could become.</h2>
+    </div>
+  </section>
+
+  <!-- 14 — Recommended menu pattern -->
+  <section data-label="14 Menu Pattern">
+    <p class="eyebrow"><span class="dot cool" style="display:inline-block;vertical-align:middle;margin-right:14px;"></span>Pattern proposal</p>
+    <h2 class="title" style="margin-top:24px;">One sheet. Both axes visible. No branching.</h2>
+    <div class="row" style="margin-top:60px;gap:60px;align-items:flex-start;">
+      <div class="col grow gap-md" style="max-width:880px;">
+        <p>Bring up a <span style="color:var(--cool);">single bottom sheet</span> after the photo lands. Show the 3×4 grid the spec already defines. The user taps one cell — Kind and Context picked at once — and the sheet dismisses.</p>
+        <div class="num-list">
+          <div class="num-item"><div class="num">01</div><div><h4>One screen, one gesture.</h4><p>No "next." The grid commits on tap.</p></div></div>
+          <div class="num-item"><div class="num">02</div><div><h4>Both axes always visible.</h4><p>Muscle memory forms after a week.</p></div></div>
+          <div class="num-item"><div class="num">03</div><div><h4>Skippable.</h4><p>Tap "Save without tags" — photo lands in archive untagged, user enriches later in detail view.</p></div></div>
+        </div>
+      </div>
+      <div class="phone sheet-phone" style="position:relative;height:780px;">
+        <div class="phone-screen">
+          <div class="status-bar"><span>9:41</span><span>●●●</span></div>
+          <div class="sketch" style="margin:24px;height:200px;">[ photo just taken ]</div>
+          <div class="sheet">
+            <div class="grab"></div>
+            <p class="step-q" style="margin-bottom:6px;">Tag this photo</p>
+            <div style="display:grid;grid-template-columns:80px repeat(4,1fr);gap:6px;">
+              <div></div>
+              <div class="mono" style="font-size:11px;color:#888;text-align:center;">TRAVEL</div>
+              <div class="mono" style="font-size:11px;color:#888;text-align:center;">EXHIBIT</div>
+              <div class="mono" style="font-size:11px;color:#888;text-align:center;">MAKING</div>
+              <div class="mono" style="font-size:11px;color:#888;text-align:center;">REF</div>
+              <div style="font-size:13px;color:#aaa;align-self:center;">Space</div>
+              <div style="aspect-ratio:1;background:#222;border-radius:8px;"></div>
+              <div style="aspect-ratio:1;background:#222;border-radius:8px;"></div>
+              <div style="aspect-ratio:1;background:#fff;border-radius:8px;"></div>
+              <div style="aspect-ratio:1;background:#222;border-radius:8px;"></div>
+              <div style="font-size:13px;color:#aaa;align-self:center;">Surface</div>
+              <div style="aspect-ratio:1;background:#222;border-radius:8px;"></div>
+              <div style="aspect-ratio:1;background:#222;border-radius:8px;"></div>
+              <div style="aspect-ratio:1;background:#222;border-radius:8px;"></div>
+              <div style="aspect-ratio:1;background:#222;border-radius:8px;"></div>
+              <div style="font-size:13px;color:#aaa;align-self:center;">Page</div>
+              <div style="aspect-ratio:1;background:#222;border-radius:8px;"></div>
+              <div style="aspect-ratio:1;background:#222;border-radius:8px;"></div>
+              <div style="aspect-ratio:1;background:#222;border-radius:8px;"></div>
+              <div style="aspect-ratio:1;background:#222;border-radius:8px;"></div>
+            </div>
+            <button class="link-button" style="margin-top:8px;">Save without tags</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 15 — Three sketches -->
+  <section data-label="15 Three Sketches">
+    <p class="eyebrow"><span class="dot cool" style="display:inline-block;vertical-align:middle;margin-right:14px;"></span>Visual direction · 3 to explore</p>
+    <h2 class="title" style="margin-top:24px;">Three menu shapes worth prototyping.</h2>
+    <div class="row" style="margin-top:60px;gap:40px;align-items:flex-start;">
+
+      <!-- A: grid sheet -->
+      <div class="col grow gap-md" style="flex:1;align-items:center;">
+        <div style="width:340px;height:560px;border-radius:42px;background:#000;padding:10px;box-shadow:0 0 0 1px var(--rule);">
+          <div style="width:100%;height:100%;background:#111;border-radius:34px;overflow:hidden;display:flex;flex-direction:column;font-family:-apple-system,system-ui,sans-serif;">
+            <div class="sketch" style="margin:18px;height:200px;border-radius:10px;font-size:16px;">[ photo ]</div>
+            <div style="background:#1a1a18;border-top-left-radius:20px;border-top-right-radius:20px;padding:16px 18px 24px;margin-top:auto;">
+              <div style="width:40px;height:4px;background:#444;border-radius:999px;margin:0 auto 14px;"></div>
+              <div style="display:grid;grid-template-columns:60px repeat(4,1fr);gap:5px;">
+                <div></div>
+                <div class="mono" style="font-size:10px;color:#888;text-align:center;">TRV</div>
+                <div class="mono" style="font-size:10px;color:#888;text-align:center;">EXH</div>
+                <div class="mono" style="font-size:10px;color:#888;text-align:center;">MAK</div>
+                <div class="mono" style="font-size:10px;color:#888;text-align:center;">REF</div>
+                <div style="font-size:11px;color:#aaa;align-self:center;">Space</div>
+                <div style="aspect-ratio:1;background:#222;border-radius:6px;"></div><div style="aspect-ratio:1;background:#222;border-radius:6px;"></div><div style="aspect-ratio:1;background:#222;border-radius:6px;"></div><div style="aspect-ratio:1;background:#222;border-radius:6px;"></div>
+                <div style="font-size:11px;color:#aaa;align-self:center;">Surface</div>
+                <div style="aspect-ratio:1;background:#222;border-radius:6px;"></div><div style="aspect-ratio:1;background:#fff;border-radius:6px;"></div><div style="aspect-ratio:1;background:#222;border-radius:6px;"></div><div style="aspect-ratio:1;background:#222;border-radius:6px;"></div>
+                <div style="font-size:11px;color:#aaa;align-self:center;">Page</div>
+                <div style="aspect-ratio:1;background:#222;border-radius:6px;"></div><div style="aspect-ratio:1;background:#222;border-radius:6px;"></div><div style="aspect-ratio:1;background:#222;border-radius:6px;"></div><div style="aspect-ratio:1;background:#222;border-radius:6px;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div style="width:100%;">
+          <p class="mono small" style="color:var(--ink-3);">A — GRID SHEET</p>
+          <h4 style="font-family:Inter;font-weight:500;font-size:30px;margin:8px 0;letter-spacing:-0.01em;">12 cells, both axes</h4>
+          <p class="small" style="color:var(--ink-2);">Closest to the spec. Most legible.</p>
+        </div>
+      </div>
+
+      <!-- B: radial -->
+      <div class="col grow gap-md" style="flex:1;align-items:center;">
+        <div style="width:340px;height:560px;border-radius:42px;background:#000;padding:10px;box-shadow:0 0 0 1px var(--rule);">
+          <div style="width:100%;height:100%;background:#111;border-radius:34px;overflow:hidden;display:flex;flex-direction:column;font-family:-apple-system,system-ui,sans-serif;">
+            <div class="sketch" style="margin:18px;height:200px;border-radius:10px;font-size:16px;">[ photo ]</div>
+            <div style="background:#1a1a18;border-top-left-radius:20px;border-top-right-radius:20px;padding:16px 18px 28px;margin-top:auto;">
+              <div style="width:40px;height:4px;background:#444;border-radius:999px;margin:0 auto 14px;"></div>
+              <div style="position:relative;height:240px;">
+                <div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:80px;height:80px;border-radius:50%;background:#fff;color:#111;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:11px;text-align:center;line-height:1.2;">Surface<br>·Travel</div>
+                <div style="position:absolute;left:50%;top:0;transform:translateX(-50%);padding:8px 16px;border-radius:999px;background:#222;border:1px solid #333;color:#ccc;font-size:12px;">Space</div>
+                <div style="position:absolute;right:0;top:50%;transform:translateY(-50%);padding:8px 16px;border-radius:999px;background:#222;border:1px solid #333;color:#ccc;font-size:12px;">Exhibit</div>
+                <div style="position:absolute;left:50%;bottom:0;transform:translateX(-50%);padding:8px 16px;border-radius:999px;background:#222;border:1px solid #333;color:#ccc;font-size:12px;">Page</div>
+                <div style="position:absolute;left:0;top:50%;transform:translateY(-50%);padding:8px 16px;border-radius:999px;background:#222;border:1px solid #333;color:#ccc;font-size:12px;">Travel</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div style="width:100%;">
+          <p class="mono small" style="color:var(--ink-3);">B — RADIAL</p>
+          <h4 style="font-family:Inter;font-weight:500;font-size:30px;margin:8px 0;letter-spacing:-0.01em;">Drag to combine</h4>
+          <p class="small" style="color:var(--ink-2);">One gesture. Fast once learned.</p>
+        </div>
+      </div>
+
+      <!-- C: two big rows -->
+      <div class="col grow gap-md" style="flex:1;align-items:center;">
+        <div style="width:340px;height:560px;border-radius:42px;background:#000;padding:10px;box-shadow:0 0 0 1px var(--rule);">
+          <div style="width:100%;height:100%;background:#111;border-radius:34px;overflow:hidden;display:flex;flex-direction:column;font-family:-apple-system,system-ui,sans-serif;">
+            <div class="sketch" style="margin:18px;height:170px;border-radius:10px;font-size:16px;">[ photo ]</div>
+            <div style="padding:8px 18px;display:flex;flex-direction:column;gap:10px;">
+              <p class="mono" style="font-size:10px;color:#888;letter-spacing:0.15em;margin:0;">KIND</p>
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;">
+                <div style="padding:18px 4px;border-radius:12px;background:#222;color:#eee;text-align:center;font-size:14px;font-weight:500;">Space</div>
+                <div style="padding:18px 4px;border-radius:12px;background:#fff;color:#111;text-align:center;font-size:14px;font-weight:600;">Surface</div>
+                <div style="padding:18px 4px;border-radius:12px;background:#222;color:#eee;text-align:center;font-size:14px;font-weight:500;">Page</div>
+              </div>
+              <p class="mono" style="font-size:10px;color:#888;letter-spacing:0.15em;margin:6px 0 0;">CONTEXT</p>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+                <div style="padding:16px 4px;border-radius:12px;background:#222;color:#eee;text-align:center;font-size:14px;font-weight:500;">Travel</div>
+                <div style="padding:16px 4px;border-radius:12px;background:#222;color:#eee;text-align:center;font-size:14px;font-weight:500;">Exhibit</div>
+                <div style="padding:16px 4px;border-radius:12px;background:#222;color:#eee;text-align:center;font-size:14px;font-weight:500;">Making</div>
+                <div style="padding:16px 4px;border-radius:12px;background:#222;color:#eee;text-align:center;font-size:14px;font-weight:500;">Ref</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div style="width:100%;">
+          <p class="mono small" style="color:var(--ink-3);">C — TWO BIG ROWS</p>
+          <h4 style="font-family:Inter;font-weight:500;font-size:30px;margin:8px 0;letter-spacing:-0.01em;">Stacked targets</h4>
+          <p class="small" style="color:var(--ink-2);">Two taps. Biggest targets. Familiar.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 16 — Next steps -->
+  <section data-label="16 Next Steps">
+    <p class="eyebrow">Next steps</p>
+    <h2 class="title" style="margin-top:24px;">If you'd like to keep going.</h2>
+    <div class="row" style="margin-top:80px;gap:32px;">
+      <div class="flow-box grow" style="border-color:var(--cool);">
+        <p class="lbl" style="color:var(--cool);">01 — This week</p>
+        <p class="nm" style="font-size:32px;">Pick a menu shape</p>
+        <p class="small" style="margin-top:14px;color:var(--ink-2);">Choose one of A / B / C and I'll build a clickable iPhone prototype against it.</p>
+      </div>
+      <div class="flow-box grow" style="border-color:var(--cool);">
+        <p class="lbl" style="color:var(--cool);">02 — Next</p>
+        <p class="nm" style="font-size:32px;">Realign with CLAUDE.md</p>
+        <p class="small" style="margin-top:14px;color:var(--ink-2);">Either revert the taxonomy to 3×4 (Kind × Context), or update the spec to match the current 3-axis tree intentionally.</p>
+      </div>
+      <div class="flow-box grow" style="border-color:var(--cool);">
+        <p class="lbl" style="color:var(--cool);">03 — Later</p>
+        <p class="nm" style="font-size:32px;">Move detail-entry off-flow</p>
+        <p class="small" style="margin-top:14px;color:var(--ink-2);">Artwork fields, label photos, keywords — all to the detail view. Capture stays gestural.</p>
+      </div>
+    </div>
+    <hr class="rule" style="margin-top:100px;">
+    <p class="small mono" style="margin-top:36px;color:var(--ink-3);">END · archi-archive design review · April 2026</p>
+  </section>
+
+</deck-stage>
+
+</body>
+</html>
