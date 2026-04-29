@@ -353,6 +353,41 @@
       border-color: rgba(255,255,255,0.4);
     }
 
+    .cam-flash {
+      position: absolute;
+      inset: 0;
+      background: #fff;
+      opacity: 0;
+      pointer-events: none;
+      z-index: 30;
+    }
+    .cam-flash.snap {
+      animation: camFlash 280ms ease-out;
+    }
+    @keyframes camFlash {
+      0%   { opacity: 0; }
+      18%  { opacity: 0.8; }
+      100% { opacity: 0; }
+    }
+
+    .cam-focus {
+      position: absolute;
+      width: 64px;
+      height: 64px;
+      border: 1.5px solid #7CEB7C;
+      border-radius: 4px;
+      pointer-events: none;
+      opacity: 0;
+      z-index: 11;
+      transform: translate(-50%, -50%) scale(1.4);
+      transition: opacity 180ms ease, transform 180ms ease;
+      box-shadow: 0 0 0 0.5px rgba(0,0,0,0.4);
+    }
+    .cam-focus.show {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
+
     .cam-error {
       position: absolute;
       inset: 0;
@@ -378,13 +413,22 @@
     }
 
     .step-question {
+      /* Hidden — the header already shows the step name. */
+      display: none;
+    }
+
+    /* Capture flow chip layout: equal-width auto-fit grid (cleaner than flex-wrap). */
+    #capture-step-container .chip-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+      gap: 0.45rem;
+    }
+    #capture-step-container .chip-row .chip {
       text-align: center;
-      font-family: var(--font-mono);
-      font-size: 0.72rem;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      color: var(--text-faint);
-      margin: 0.25rem 0 0.6rem;
+      padding: 0.6rem 0.85rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .type-buttons { display: grid; gap: 0.5rem; }
@@ -797,6 +841,8 @@
       <button class="cam-pill cam-icon" id="cam-flip" aria-label="Switch camera">&#8634;</button>
     </div>
 
+    <div class="cam-flash" id="cam-flash" aria-hidden="true"></div>
+    <div class="cam-focus" id="cam-focus" aria-hidden="true"></div>
     <div class="cam-error" id="cam-error" hidden></div>
   </section>
 
@@ -1476,6 +1522,7 @@
         toast('Pick or add a project first');
         return;
       }
+      flashShutter();
       const blob = await captureFrame();
       if (!blob) return;
       if (captureMode === 'project') {
@@ -1499,6 +1546,52 @@
       startReferenceTagging(blob);
     }
     document.getElementById('cam-shutter').addEventListener('click', shutterPressed);
+
+    // Brief white flash overlay when the shutter fires — feels like the iOS Camera shutter.
+    function flashShutter() {
+      const el = document.getElementById('cam-flash');
+      if (!el) return;
+      el.classList.remove('snap');
+      // Force reflow so the animation restarts on rapid taps.
+      // eslint-disable-next-line no-unused-expressions
+      void el.offsetWidth;
+      el.classList.add('snap');
+    }
+
+    // Tap-to-focus: show a focus ring at the tap point, and best-effort tell
+    // the camera track to focus there. Browser support varies — the visual
+    // ring always shows so the gesture feels acknowledged.
+    let focusTimer = null;
+    document.getElementById('cam-video').addEventListener('click', async (event) => {
+      const video = event.currentTarget;
+      const rect = video.getBoundingClientRect();
+      const x = event.clientX - rect.left;
+      const y = event.clientY - rect.top;
+      const ring = document.getElementById('cam-focus');
+      ring.style.left = x + 'px';
+      ring.style.top  = y + 'px';
+      ring.classList.add('show');
+      clearTimeout(focusTimer);
+      focusTimer = setTimeout(() => ring.classList.remove('show'), 850);
+
+      const track = mediaStream && mediaStream.getVideoTracks()[0];
+      if (!track || !track.applyConstraints) return;
+      const caps = track.getCapabilities ? track.getCapabilities() : {};
+      const advanced = [];
+      // Refocus pulse: switch back to continuous if available, then immediately
+      // try a manual point-of-interest focus. Either may quietly fail per device.
+      if (Array.isArray(caps.focusMode) && caps.focusMode.includes('continuous')) {
+        advanced.push({ focusMode: 'continuous' });
+      }
+      if (Array.isArray(caps.focusMode) && caps.focusMode.includes('manual') && caps.pointsOfInterest !== undefined) {
+        advanced.push({
+          focusMode: 'manual',
+          pointsOfInterest: [{ x: x / rect.width, y: y / rect.height }],
+        });
+      }
+      if (advanced.length === 0) return;
+      try { await track.applyConstraints({ advanced }); } catch { /* ignore unsupported */ }
+    });
 
     async function captureFrame() {
       const video = document.getElementById('cam-video');
