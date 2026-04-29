@@ -3,52 +3,57 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f2f2f7">
-  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#000000">
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#7CEB7C">
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0F0F0E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <title>archi-archive</title>
   <style>
-    /* ============ THEME (auto light/dark) ============ */
+    /* ============ THEME — Mint chartreuse light, near-black with mint accent in dark ============ */
     :root {
       color-scheme: light dark;
 
-      /* Default = dark */
-      --bg: #000;
-      --bg-elev: #1c1c1e;
-      --bg-elev-2: #2c2c2e;
-      --bg-input: #1c1c1e;
-      --text: #f5f5f7;
-      --text-muted: #98989d;
-      --text-faint: #636366;
-      --border: #38383a;
-      --border-strong: #48484a;
-      --accent: #0a84ff;
-      --danger: #ff453a;
-      --pill-bg: rgba(255,255,255,0.08);
-      --pill-active-bg: #f5f5f7;
-      --pill-active-text: #000;
-      --overlay: rgba(28,28,30,0.72);
+      /* Default = light (Mint chartreuse field, NaN-foundry direction) */
+      --bg: #7CEB7C;
+      --bg-elev: #FAFAF7;
+      --bg-elev-2: #F2F0E9;
+      --bg-input: #FAFAF7;
+      --text: #000000;
+      --text-muted: rgba(0,0,0,0.62);
+      --text-faint: rgba(0,0,0,0.4);
+      --border: rgba(0,0,0,0.5);
+      --border-strong: rgba(0,0,0,0.7);
+      --accent: #000000;
+      --accent-ink: #7CEB7C;
+      --danger: #c00;
+      --pill-bg: rgba(0,0,0,0.06);
+      --pill-active-bg: #000000;
+      --pill-active-text: #7CEB7C;
+      --overlay: rgba(0,0,0,0.45);
 
-      --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", system-ui, sans-serif;
-      --font-mono: "SF Mono", Menlo, Monaco, "Courier New", monospace;
+      --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Helvetica Neue", system-ui, sans-serif;
+      --font-mono: "JetBrains Mono", "SF Mono", Menlo, Monaco, "Courier New", monospace;
     }
 
-    @media (prefers-color-scheme: light) {
+    @media (prefers-color-scheme: dark) {
       :root {
-        --bg: #f2f2f7;
-        --bg-elev: #ffffff;
-        --bg-elev-2: #f9f9fb;
-        --bg-input: #ffffff;
-        --text: #000000;
-        --text-muted: #6e6e73;
-        --text-faint: #aeaeb2;
-        --border: #d1d1d6;
-        --border-strong: #c7c7cc;
-        --accent: #007aff;
-        --danger: #ff3b30;
-        --pill-bg: rgba(0,0,0,0.06);
-        --pill-active-bg: #000000;
-        --pill-active-text: #ffffff;
-        --overlay: rgba(255,255,255,0.78);
+        --bg: #0F0F0E;
+        --bg-elev: #1A1A18;
+        --bg-elev-2: #2A2A26;
+        --bg-input: #1A1A18;
+        --text: #ECEAE4;
+        --text-muted: #A8A49B;
+        --text-faint: #6E6A62;
+        --border: #2A2A26;
+        --border-strong: #3A3A35;
+        --accent: #7CEB7C;
+        --accent-ink: #000000;
+        --danger: #ff453a;
+        --pill-bg: rgba(255,255,255,0.06);
+        --pill-active-bg: #7CEB7C;
+        --pill-active-text: #000000;
+        --overlay: rgba(0,0,0,0.65);
       }
     }
 
@@ -123,7 +128,7 @@
       padding: 1rem 1.25rem;
       border-radius: 14px;
       background: var(--accent);
-      color: #fff;
+      color: var(--accent-ink);
       font-size: 1.05rem;
       font-weight: 600;
       letter-spacing: -0.01em;
@@ -225,7 +230,7 @@
       max-width: 100%;
     }
     .cam-project-trigger.active {
-      background: #ffd60a;
+      background: #7CEB7C;
       color: #000;
       font-weight: 600;
     }
@@ -266,7 +271,7 @@
       font-weight: 600;
     }
     .cam-project-popup .item.new {
-      color: #ffd60a;
+      color: #7CEB7C;
       border-top: 1px solid rgba(255,255,255,0.1);
       margin-top: 0.2rem;
       padding-top: 0.8rem;
@@ -297,7 +302,7 @@
       border-radius: 999px;
     }
     .cam-mode-btn.active {
-      color: #ffd60a;
+      color: #7CEB7C;
     }
 
     /* Shutter (centered, just above the bottom bar) */
@@ -480,7 +485,7 @@
 
     .btn-primary {
       background: var(--accent);
-      color: #fff;
+      color: var(--accent-ink);
     }
     .btn-primary:active { opacity: 0.7; }
 
