@@ -213,6 +213,27 @@
       justify-content: center;
     }
 
+    .cam-top-left {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      flex: 1;
+      min-width: 0;
+    }
+    .cam-reuse-toggle {
+      width: 36px;
+      height: 36px;
+      font-size: 1.05rem;
+      flex-shrink: 0;
+      opacity: 0.6;
+      transition: opacity 0.1s ease, background 0.1s ease;
+    }
+    .cam-reuse-toggle.active {
+      background: #7CEB7C;
+      color: #000;
+      opacity: 1;
+    }
+
     .cam-project-trigger {
       display: inline-flex;
       align-items: center;
@@ -816,16 +837,25 @@
   <section id="view-camera" class="view active">
     <video id="cam-video" class="cam-video" playsinline webkit-playsinline autoplay muted></video>
 
-    <!-- Top bar: project trigger (left), options (right) -->
+    <!-- Top bar: type+reuse pills (reference) or project pill (project) on the left, options on the right -->
     <div class="cam-top">
-      <button class="cam-pill cam-project-trigger" id="cam-project-trigger">
-        <span id="cam-project-label">Reference</span>
-        <span class="cam-caret" id="cam-project-caret" hidden>&#9662;</span>
-      </button>
+      <div class="cam-top-left">
+        <!-- Reference mode pills -->
+        <button class="cam-pill cam-project-trigger" id="cam-type-trigger">
+          <span id="cam-type-label">Building</span>
+          <span class="cam-caret">&#9662;</span>
+        </button>
+        <button class="cam-pill cam-icon cam-reuse-toggle" id="cam-reuse-toggle" aria-label="Reuse last tags">&#8634;</button>
+        <!-- Project mode pill (hidden by default) -->
+        <button class="cam-pill cam-project-trigger" id="cam-project-trigger" hidden>
+          <span id="cam-project-label">Pick project</span>
+          <span class="cam-caret" id="cam-project-caret">&#9662;</span>
+        </button>
+      </div>
       <button class="cam-pill cam-icon" id="cam-options" aria-label="Options">&#8943;</button>
     </div>
 
-    <!-- Project picker popup, anchored under the top-left trigger -->
+    <!-- Shared dropdown popup, anchored under the top-left -->
     <div class="cam-project-popup" id="cam-project-popup" hidden></div>
 
     <!-- Centered shutter sits above the bottom bar -->
@@ -1295,34 +1325,52 @@
     // Stays on across multiple shots until the user picks "New tagging" or switches mode.
     let referenceReuseTags = null;
 
+    // Persisted Reference-mode type choice (Building / Detail / Graphic).
+    function getReferenceType() {
+      return localStorage.getItem('archi-archive:referenceType') || 'building';
+    }
+    function setReferenceTypePersist(t) {
+      localStorage.setItem('archi-archive:referenceType', t);
+    }
+
     function updateCameraModeUI() {
       document.querySelectorAll('[data-cam-mode]').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.camMode === captureMode);
       });
-      const trigger = document.getElementById('cam-project-trigger');
-      const label = document.getElementById('cam-project-label');
-      const caret = document.getElementById('cam-project-caret');
-      const shutter = document.getElementById('cam-shutter');
+
+      const typeTrigger  = document.getElementById('cam-type-trigger');
+      const typeLabel    = document.getElementById('cam-type-label');
+      const reuseToggle  = document.getElementById('cam-reuse-toggle');
+      const projTrigger  = document.getElementById('cam-project-trigger');
+      const projLabel    = document.getElementById('cam-project-label');
+      const projCaret    = document.getElementById('cam-project-caret');
+      const shutter      = document.getElementById('cam-shutter');
 
       if (captureMode === 'project') {
+        // Show project pill, hide reference pills.
+        typeTrigger.hidden  = true;
+        reuseToggle.hidden  = true;
+        projTrigger.hidden  = false;
         if (activeProject) {
-          label.textContent = activeProject;
-          trigger.classList.add('active');
+          projLabel.textContent = activeProject;
+          projTrigger.classList.add('active');
         } else {
-          label.textContent = 'Pick project';
-          trigger.classList.remove('active');
+          projLabel.textContent = 'Pick project';
+          projTrigger.classList.remove('active');
         }
-        caret.hidden = false;
+        projCaret.hidden = false;
         shutter.classList.toggle('disabled', !activeProject);
-      } else if (referenceReuseTags) {
-        label.textContent = '↻ ' + summariseReuseTags(referenceReuseTags);
-        caret.hidden = false;
-        trigger.classList.add('active');
-        shutter.classList.remove('disabled');
       } else {
-        label.textContent = 'Reference';
-        caret.hidden = false;
-        trigger.classList.remove('active');
+        // Reference mode: type pill + reuse toggle.
+        typeTrigger.hidden  = false;
+        reuseToggle.hidden  = false;
+        projTrigger.hidden  = true;
+
+        const t = TYPES.find(x => x.id === getReferenceType()) || TYPES[0];
+        typeLabel.textContent = t.label;
+        typeTrigger.classList.toggle('active', !!referenceReuseTags === false && false);
+        // Reuse toggle visual state
+        reuseToggle.classList.toggle('active', !!referenceReuseTags);
         shutter.classList.remove('disabled');
       }
     }
@@ -1396,50 +1444,54 @@
 
     document.getElementById('cam-project-trigger').addEventListener('click', async () => {
       const popup = document.getElementById('cam-project-popup');
-      if (!popup.hidden) {
-        closeProjectPopup();
-        return;
-      }
-      if (captureMode === 'project') await openProjectPopup();
-      else await openReferencePopup();
+      if (!popup.hidden) { closeProjectPopup(); return; }
+      await openProjectPopup();
     });
 
-    async function openReferencePopup() {
+    document.getElementById('cam-type-trigger').addEventListener('click', () => {
+      const popup = document.getElementById('cam-project-popup');
+      if (!popup.hidden) { closeProjectPopup(); return; }
+      openTypePopup();
+    });
+
+    document.getElementById('cam-reuse-toggle').addEventListener('click', async () => {
+      if (referenceReuseTags) {
+        referenceReuseTags = null;
+        updateCameraModeUI();
+        toast('Reuse off');
+        return;
+      }
+      const last = await getMostRecentReferenceTags();
+      if (!last) {
+        toast('No previous photo to reuse');
+        return;
+      }
+      referenceReuseTags = last;
+      updateCameraModeUI();
+      toast('Reusing: ' + summariseReuseTags(last));
+    });
+
+    function openTypePopup() {
       const popup = document.getElementById('cam-project-popup');
       popup.innerHTML = '';
-
-      // "New tagging" — clears any reuse setting.
-      const newItem = document.createElement('div');
-      newItem.className = 'item';
-      if (!referenceReuseTags) newItem.classList.add('active');
-      newItem.textContent = 'New tagging';
-      newItem.addEventListener('click', () => {
-        referenceReuseTags = null;
-        closeProjectPopup();
-        updateCameraModeUI();
-      });
-      popup.appendChild(newItem);
-
-      // "Reuse last" — shows the most recent reference photo's tags.
-      const last = await getMostRecentReferenceTags();
-      if (last) {
-        const reuse = document.createElement('div');
-        reuse.className = 'item';
-        if (referenceReuseTags) reuse.classList.add('active');
-        reuse.innerHTML = `↻ Reuse last <span style="opacity:0.6; margin-left:0.4rem; font-weight:400; font-size:0.85rem;">${summariseReuseTags(last)}</span>`;
-        reuse.addEventListener('click', () => {
-          referenceReuseTags = last;
+      const current = getReferenceType();
+      TYPES.forEach(t => {
+        const item = document.createElement('div');
+        item.className = 'item';
+        if (current === t.id) item.classList.add('active');
+        item.innerHTML = `<div><div style="font-weight:500;">${t.label}</div><div style="opacity:0.6; font-size:0.82rem; margin-top:2px;">${t.hint}</div></div>`;
+        item.addEventListener('click', () => {
+          setReferenceTypePersist(t.id);
+          // Changing type while reuse is on would be contradictory — clear it.
+          if (referenceReuseTags) {
+            referenceReuseTags = null;
+            toast('Reuse off');
+          }
           closeProjectPopup();
           updateCameraModeUI();
         });
-        popup.appendChild(reuse);
-      } else {
-        const empty = document.createElement('div');
-        empty.className = 'empty';
-        empty.textContent = 'Take and tag a reference photo first to enable reuse.';
-        popup.appendChild(empty);
-      }
-
+        popup.appendChild(item);
+      });
       popup.hidden = false;
     }
 
@@ -1472,8 +1524,11 @@
     document.addEventListener('click', (e) => {
       const popup = document.getElementById('cam-project-popup');
       if (popup.hidden) return;
-      const trigger = document.getElementById('cam-project-trigger');
-      if (popup.contains(e.target) || trigger.contains(e.target)) return;
+      const triggers = ['cam-project-trigger', 'cam-type-trigger', 'cam-reuse-toggle']
+        .map(id => document.getElementById(id))
+        .filter(Boolean);
+      if (popup.contains(e.target)) return;
+      if (triggers.some(t => t.contains(e.target))) return;
       closeProjectPopup();
     });
 
@@ -1617,9 +1672,12 @@
     function startReferenceTagging(blob) {
       pendingBlob = blob;
       pendingLabelBlob = null;
-      captureDraft = {};
+      // Type was chosen ahead of the photo via the top-left pill in the camera —
+      // skip the "What is this?" step and open the matching form straight away.
+      const t = getReferenceType();
+      captureDraft = { type: t };
       captureBackStack = [];
-      captureStep = 'type';
+      captureStep = 'form-' + t;
       const preview = document.getElementById('capture-preview');
       const url = URL.createObjectURL(blob);
       objectUrls.push(url);
