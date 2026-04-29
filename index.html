@@ -1866,18 +1866,10 @@
 
     // Back-button: pops the history stack; if empty, discards and goes home.
     const STEP_LABEL = {
-      'type': 'What is this?',
-      'primary-building': 'Typology',
-      'primary-building-concepts': 'Concepts',
-      'primary-building-materiality': 'Materiality',
-      'primary-building-meta': 'Architect & year',
-      'primary-building-note': 'Note',
-      'primary-element': 'Element',
-      'primary-element-materiality': 'Materiality',
-      'primary-element-note': 'Note',
-      'primary-graphic': 'Graphic',
-      'graphic-details': 'Details',
-      'primary-graphic-note': 'Note',
+      'type':          'What is this?',
+      'form-building': 'Building',
+      'form-element':  'Element',
+      'form-graphic':  'Graphic',
     };
 
     function setCaptureStep(next) {
@@ -1903,42 +1895,18 @@
       captureStep = null;
       captureBackStack = [];
     }
-
     function renderCaptureStep() {
       const c = stepContainer;
       c.innerHTML = '';
-
       document.getElementById('capture-step-label').textContent = STEP_LABEL[captureStep] || '';
 
-      if (captureStep === 'type') {
-        renderTypeStep(c);
-      } else if (captureStep === 'primary-building') {
-        renderTypologyStep(c);
-      } else if (captureStep === 'primary-building-concepts') {
-        renderBuildingConceptsStep(c);
-      } else if (captureStep === 'primary-building-materiality') {
-        renderBuildingMaterialityStep(c);
-      } else if (captureStep === 'primary-building-meta') {
-        renderBuildingMetaStep(c);
-      } else if (captureStep === 'primary-building-note') {
-        renderNoteStep(c);
-      } else if (captureStep === 'primary-element') {
-        renderElementStep(c);
-      } else if (captureStep === 'primary-element-materiality') {
-        renderElementMaterialityStep(c);
-      } else if (captureStep === 'primary-element-note') {
-        renderNoteStep(c);
-      } else if (captureStep === 'primary-graphic') {
-        renderGraphicKindStep(c);
-      } else if (captureStep === 'graphic-details') {
-        renderGraphicDetailsStep(c);
-      } else if (captureStep === 'primary-graphic-note') {
-        renderNoteStep(c);
-      }
+      if (captureStep === 'type')          renderTypeStep(c);
+      else if (captureStep === 'form-building') renderBuildingForm(c);
+      else if (captureStep === 'form-element')  renderElementForm(c);
+      else if (captureStep === 'form-graphic')  renderGraphicForm(c);
     }
 
     function renderTypeStep(c) {
-      c.innerHTML = '<p class="step-question">What is this?</p>';
       const wrap = document.createElement('div');
       wrap.className = 'type-buttons';
       TYPES.forEach(t => {
@@ -1947,272 +1915,166 @@
         btn.innerHTML = `<strong>${t.label}</strong><span>${t.hint}</span>`;
         btn.addEventListener('click', () => {
           captureDraft.type = t.id;
-          if (t.id === 'building') {
-            const first = firstEnabledBuildingStep();
-            if (first) setCaptureStep(first);
-            else finishCapture();
-          } else if (t.id === 'element') {
-            setCaptureStep('primary-element');
-          } else {
-            setCaptureStep('primary-graphic');
-          }
+          if (t.id === 'building')      setCaptureStep('form-building');
+          else if (t.id === 'element')  setCaptureStep('form-element');
+          else                          setCaptureStep('form-graphic');
         });
         wrap.appendChild(btn);
       });
       c.appendChild(wrap);
     }
 
-    function renderTypologyStep(c) {
-      c.innerHTML = '<p class="step-question">Typology?</p>';
+    // ============================================================
+    // Form helpers (single-page Building/Element/Graphic forms)
+    // ============================================================
+    function buildFormSection(title, build) {
+      const s = document.createElement('div');
+      s.className = 'section';
+      const h = document.createElement('p');
+      h.className = 'section-title';
+      h.textContent = title;
+      s.appendChild(h);
+      build(s);
+      return s;
+    }
+
+    function buildChipsContainer(items, field, multi, meta) {
       const row = document.createElement('div');
       row.className = 'chip-row';
-      getEffectiveTypology().forEach(t => {
+      items.forEach(label => {
+        const val = meta ? (meta.find(m => m.label === label)?.id || label) : label;
         const chip = document.createElement('button');
         chip.className = 'chip';
-        chip.textContent = t;
-        if (captureDraft.typology === t) chip.classList.add('active');
+        chip.textContent = label;
+        const isActive = multi
+          ? (captureDraft[field] || []).includes(val)
+          : captureDraft[field] === val;
+        if (isActive) chip.classList.add('active');
         chip.addEventListener('click', () => {
-          row.querySelectorAll('.chip').forEach(x => x.classList.remove('active'));
-          if (captureDraft.typology === t) {
-            captureDraft.typology = null;
+          if (multi) {
+            if (!captureDraft[field]) captureDraft[field] = [];
+            const arr = captureDraft[field];
+            const idx = arr.indexOf(val);
+            if (idx === -1) arr.push(val);
+            else arr.splice(idx, 1);
+            chip.classList.toggle('active');
           } else {
-            captureDraft.typology = t;
-            chip.classList.add('active');
+            row.querySelectorAll('.chip').forEach(x => x.classList.remove('active'));
+            if (captureDraft[field] === val) {
+              captureDraft[field] = null;
+            } else {
+              captureDraft[field] = val;
+              chip.classList.add('active');
+            }
           }
         });
         row.appendChild(chip);
       });
-      c.appendChild(row);
-      appendNoteField(c, 'typology_note', 'Note about the typology…');
-      addStepActions(c, 'Skip rest', finishCapture, 'Next', () => {
-        const next = nextEnabledBuildingStep('primary-building');
-        if (next) setCaptureStep(next);
-        else finishCapture();
-      });
+      return row;
     }
 
-    function renderBuildingConceptsStep(c) {
-      c.innerHTML = '<p class="step-question">Concepts (tap any that apply)</p>';
-      if (!captureDraft.concepts) captureDraft.concepts = [];
-
-      const row = document.createElement('div');
-      row.className = 'chip-row';
-      getEffectiveConcepts().forEach(concept => {
-        const chip = document.createElement('button');
-        chip.className = 'chip';
-        chip.textContent = concept.label;
-        if (captureDraft.concepts.includes(concept.id)) chip.classList.add('active');
-        chip.addEventListener('click', () => {
-          const idx = captureDraft.concepts.indexOf(concept.id);
-          if (idx === -1) captureDraft.concepts.push(concept.id);
-          else captureDraft.concepts.splice(idx, 1);
-          chip.classList.toggle('active');
-        });
-        row.appendChild(chip);
+    function buildNoteTextarea(field, placeholder) {
+      const ta = document.createElement('textarea');
+      ta.className = 'form-input';
+      ta.rows = 2;
+      ta.placeholder = placeholder || 'Note for this…';
+      ta.value = captureDraft[field] || '';
+      ta.addEventListener('input', () => {
+        captureDraft[field] = ta.value.trim() || null;
       });
-      c.appendChild(row);
-      appendNoteField(c, 'concepts_note', 'Note about the concepts…');
-
-      addStepActions(c, 'Skip rest', finishCapture, 'Next', () => {
-        const next = nextEnabledBuildingStep('primary-building-concepts');
-        if (next) setCaptureStep(next);
-        else finishCapture();
-      });
+      return ta;
     }
 
-    function renderBuildingMaterialityStep(c) {
-      renderMaterialityChips(c);
-      appendNoteField(c, 'materials_note', 'Note about the materials…');
-      addStepActions(c, 'Skip rest', finishCapture, 'Next', () => {
-        const next = nextEnabledBuildingStep('primary-building-materiality');
-        if (next) setCaptureStep(next);
-        else finishCapture();
-      });
-    }
-
-    function renderBuildingMetaStep(c) {
-      c.innerHTML = '<p class="step-question">Architect &amp; year (optional)</p>';
-
-      [
-        { field: 'creator', label: 'Architect', placeholder: 'e.g. Le Corbusier' },
-        { field: 'year',    label: 'Year',      placeholder: 'e.g. 1952' },
-      ].forEach(({ field, label, placeholder }) => {
-        const f = document.createElement('div');
-        f.className = 'form-field';
-        f.innerHTML = `<label class="form-label">${label}</label>`;
-        const input = document.createElement('input');
-        input.className = 'form-input';
-        input.type = 'text';
-        input.placeholder = placeholder;
-        input.value = captureDraft[field] || '';
-        input.addEventListener('input', () => {
-          captureDraft[field] = input.value.trim() || null;
-        });
-        f.appendChild(input);
-        c.appendChild(f);
-      });
-
-      addStepActions(c, 'Skip rest', finishCapture, 'Next', () => {
-        const next = nextEnabledBuildingStep('primary-building-meta');
-        if (next) setCaptureStep(next);
-        else finishCapture();
-      });
-    }
-
-    // Generic Materiality multi-select chips
-    function renderMaterialityChips(c) {
-      c.innerHTML = '<p class="step-question">Materiality (tap any that apply)</p>';
-      if (!captureDraft.materials) captureDraft.materials = [];
-
-      const row = document.createElement('div');
-      row.className = 'chip-row';
-      getEffectiveMaterials().forEach(m => {
-        const chip = document.createElement('button');
-        chip.className = 'chip';
-        chip.textContent = m;
-        if (captureDraft.materials.includes(m)) chip.classList.add('active');
-        chip.addEventListener('click', () => {
-          const idx = captureDraft.materials.indexOf(m);
-          if (idx === -1) captureDraft.materials.push(m);
-          else captureDraft.materials.splice(idx, 1);
-          chip.classList.toggle('active');
-        });
-        row.appendChild(chip);
-      });
-      c.appendChild(row);
-    }
-
-    // Generic Concepts multi-select chips
-    function renderConceptsChips(c) {
-      c.innerHTML = '<p class="step-question">Concepts (tap any that apply)</p>';
-      if (!captureDraft.concepts) captureDraft.concepts = [];
-
-      const row = document.createElement('div');
-      row.className = 'chip-row';
-      getEffectiveConcepts().forEach(concept => {
-        const chip = document.createElement('button');
-        chip.className = 'chip';
-        chip.textContent = concept.label;
-        if (captureDraft.concepts.includes(concept.id)) chip.classList.add('active');
-        chip.addEventListener('click', () => {
-          const idx = captureDraft.concepts.indexOf(concept.id);
-          if (idx === -1) captureDraft.concepts.push(concept.id);
-          else captureDraft.concepts.splice(idx, 1);
-          chip.classList.toggle('active');
-        });
-        row.appendChild(chip);
-      });
-      c.appendChild(row);
-    }
-
-    // Generic Note step (used by Building, Element, Graphic flows)
-    function renderNoteStep(c) {
-      c.innerHTML = '<p class="step-question">Personal note (optional)</p>';
-
+    function buildTextInputField(field, label, placeholder) {
       const f = document.createElement('div');
       f.className = 'form-field';
-      const textarea = document.createElement('textarea');
-      textarea.className = 'form-input';
-      textarea.rows = 4;
-      textarea.placeholder = 'A line or two about why this caught your eye…';
-      textarea.value = captureDraft.note || '';
-      textarea.addEventListener('input', () => {
-        captureDraft.note = textarea.value.trim() || null;
+      f.innerHTML = `<label class="form-label">${label}</label>`;
+      const inp = document.createElement('input');
+      inp.className = 'form-input';
+      inp.type = 'text';
+      if (placeholder) inp.placeholder = placeholder;
+      inp.value = captureDraft[field] || '';
+      inp.addEventListener('input', () => {
+        captureDraft[field] = inp.value.trim() || null;
       });
-      f.appendChild(textarea);
-      c.appendChild(f);
-
-      addStepActions(c, 'Skip', () => { captureDraft.note = null; finishCapture(); }, 'Save', finishCapture);
+      f.appendChild(inp);
+      return f;
     }
 
-    // Inline note field that lives under a chip section in the capture flow.
-    // Persists to captureDraft[fieldName]; saved into tags_human at finishCapture.
-    function appendNoteField(c, fieldName, placeholder) {
-      const wrap = document.createElement('div');
-      wrap.style.marginTop = '0.5rem';
-      const textarea = document.createElement('textarea');
-      textarea.className = 'form-input';
-      textarea.rows = 2;
-      textarea.placeholder = placeholder || 'Note for this…';
-      textarea.value = captureDraft[fieldName] || '';
-      textarea.addEventListener('input', () => {
-        captureDraft[fieldName] = textarea.value.trim() || null;
-      });
-      wrap.appendChild(textarea);
-      c.appendChild(wrap);
+    function buildSaveBar() {
+      const bar = document.createElement('div');
+      bar.className = 'capture-actions';
+      const save = document.createElement('button');
+      save.className = 'btn-primary';
+      save.textContent = 'Save';
+      save.addEventListener('click', finishCapture);
+      bar.appendChild(save);
+      return bar;
     }
 
-    function addStepActions(c, leftLabel, leftFn, rightLabel, rightFn) {
-      const actions = document.createElement('div');
-      actions.className = 'capture-actions';
-      const left = document.createElement('button');
-      left.className = 'btn-secondary';
-      left.textContent = leftLabel;
-      left.addEventListener('click', leftFn);
-      const right = document.createElement('button');
-      right.className = 'btn-primary';
-      right.textContent = rightLabel;
-      right.addEventListener('click', rightFn);
-      actions.appendChild(left);
-      actions.appendChild(right);
-      c.appendChild(actions);
+    // ============================================================
+    // Building form (single page, all sections)
+    // ============================================================
+    function renderBuildingForm(c) {
+      if (!captureDraft.concepts) captureDraft.concepts = [];
+      if (!captureDraft.materials) captureDraft.materials = [];
+
+      c.appendChild(buildFormSection('Typology', s => {
+        s.appendChild(buildChipsContainer(getEffectiveTypology(), 'typology', false));
+        s.appendChild(buildNoteTextarea('typology_note', 'Note about the typology…'));
+      }));
+      c.appendChild(buildFormSection('Concepts (multi)', s => {
+        const concepts = getEffectiveConcepts();
+        s.appendChild(buildChipsContainer(concepts.map(x => x.label), 'concepts', true, concepts));
+        s.appendChild(buildNoteTextarea('concepts_note', 'Note about the concepts…'));
+      }));
+      c.appendChild(buildFormSection('Materiality (multi)', s => {
+        s.appendChild(buildChipsContainer(getEffectiveMaterials(), 'materials', true));
+        s.appendChild(buildNoteTextarea('materials_note', 'Note about the materials…'));
+      }));
+      c.appendChild(buildFormSection('Architect & year', s => {
+        s.appendChild(buildTextInputField('creator', 'Architect', 'e.g. Le Corbusier'));
+        s.appendChild(buildTextInputField('year',    'Year',      'e.g. 1952'));
+      }));
+      c.appendChild(buildFormSection('Personal note', s => {
+        const ta = buildNoteTextarea('note', 'A line or two about why this caught your eye…');
+        ta.rows = 3;
+        s.appendChild(ta);
+      }));
+      c.appendChild(buildSaveBar());
     }
 
-    function renderElementStep(c) {
-      c.innerHTML = '<p class="step-question">Which element?</p>';
-      Object.entries(ELEMENT_GROUPS).forEach(([groupName, items]) => {
-        const g = document.createElement('div');
-        g.className = 'chip-group';
-        g.innerHTML = `<p class="chip-group-label">${groupName}</p>`;
-        const row = document.createElement('div');
-        row.className = 'chip-row';
-        items.forEach(item => {
-          const chip = document.createElement('button');
-          chip.className = 'chip';
-          chip.textContent = item;
-          if (captureDraft.element_name === item) chip.classList.add('active');
-          chip.addEventListener('click', () => {
-            captureDraft.element_name = item;
-            setCaptureStep('primary-element-materiality');
-          });
-          row.appendChild(chip);
+    // ============================================================
+    // Element form (single page)
+    // ============================================================
+    function renderElementForm(c) {
+      if (!captureDraft.materials) captureDraft.materials = [];
+
+      // Element name has grouped chips (Structural / Circulation / Enclosure / Ornament).
+      c.appendChild(buildFormSection('Element', s => {
+        Object.entries(ELEMENT_GROUPS).forEach(([groupName, items]) => {
+          const g = document.createElement('div');
+          g.className = 'chip-group';
+          g.innerHTML = `<p class="chip-group-label">${groupName}</p>`;
+          g.appendChild(buildChipsContainer(items, 'element_name', false));
+          s.appendChild(g);
         });
-        g.appendChild(row);
-        c.appendChild(g);
-      });
-      appendNoteField(c, 'element_note', 'Note about the element…');
-      c.appendChild(skipButton());
+        s.appendChild(buildNoteTextarea('element_note', 'Note about the element…'));
+      }));
+      c.appendChild(buildFormSection('Materiality (multi)', s => {
+        s.appendChild(buildChipsContainer(getEffectiveMaterials(), 'materials', true));
+        s.appendChild(buildNoteTextarea('materials_note', 'Note about the materials…'));
+      }));
+      c.appendChild(buildFormSection('Personal note', s => {
+        const ta = buildNoteTextarea('note', 'A line or two about why this caught your eye…');
+        ta.rows = 3;
+        s.appendChild(ta);
+      }));
+      c.appendChild(buildSaveBar());
     }
 
-    function renderElementMaterialityStep(c) {
-      renderMaterialityChips(c);
-      appendNoteField(c, 'materials_note', 'Note about the materials…');
-      addStepActions(c, 'Skip rest', finishCapture, 'Next', () => setCaptureStep('primary-element-note'));
-    }
-
-    function renderGraphicKindStep(c) {
-      c.innerHTML = '<p class="step-question">What kind of graphic?</p>';
-      const wrap = document.createElement('div');
-      wrap.className = 'type-buttons';
-      GRAPHIC_KINDS.forEach(k => {
-        const btn = document.createElement('button');
-        btn.className = 'type-btn';
-        btn.innerHTML = `<strong>${k.label}</strong><span>${k.hint}</span>`;
-        btn.addEventListener('click', () => {
-          captureDraft.graphic_kind = k.id;
-          if (k.id === 'other') {
-            // No kind-specific fields for "other"; jump straight to the note.
-            setCaptureStep('primary-graphic-note');
-          } else {
-            setCaptureStep('graphic-details');
-          }
-        });
-        wrap.appendChild(btn);
-      });
-      c.appendChild(wrap);
-    }
-
-    // Field schema for the Graphic > Details step, keyed by graphic_kind.
+    // Graphic form: kind chips at the top; the per-kind detail fields and the
+    // optional artwork label-photo block re-render whenever the kind changes.
     const GRAPHIC_FIELDS = {
       artwork: [
         { field: 'title',   label: 'Title' },
@@ -2241,88 +2103,44 @@
       ],
     };
 
-    function renderGraphicDetailsStep(c) {
-      const kind = captureDraft.graphic_kind;
-      const kindLabel = (GRAPHIC_KINDS.find(k => k.id === kind) || { label: 'Details' }).label;
-      c.innerHTML = `<p class="step-question">${kindLabel} details (optional)</p>`;
-
-      // Label photo only for artwork (a photo of the museum label).
-      if (kind === 'artwork') {
-        const labelArea = document.createElement('div');
-        labelArea.id = 'capture-label-area';
-        c.appendChild(labelArea);
-        renderCaptureLabelArea();
-      }
-
-      (GRAPHIC_FIELDS[kind] || []).forEach(({ field, label }) => {
-        const f = document.createElement('div');
-        f.className = 'form-field';
-        f.innerHTML = `<label class="form-label">${label}</label>`;
-        const input = document.createElement('input');
-        input.className = 'form-input';
-        input.type = 'text';
-        input.value = captureDraft[field] || '';
-        input.addEventListener('input', () => {
-          captureDraft[field] = input.value.trim() || null;
+    function renderGraphicForm(c) {
+      // Kind chips
+      const kindSection = buildFormSection('Kind', s => {
+        const row = document.createElement('div');
+        row.className = 'chip-row';
+        GRAPHIC_KINDS.forEach(k => {
+          const chip = document.createElement('button');
+          chip.className = 'chip';
+          chip.textContent = k.label;
+          if (captureDraft.graphic_kind === k.id) chip.classList.add('active');
+          chip.addEventListener('click', () => {
+            captureDraft.graphic_kind = (captureDraft.graphic_kind === k.id) ? null : k.id;
+            // Re-render so the kind-specific details section updates.
+            renderCaptureStep();
+          });
+          row.appendChild(chip);
         });
-        f.appendChild(input);
-        c.appendChild(f);
+        s.appendChild(row);
       });
+      c.appendChild(kindSection);
 
-      addStepActions(c, 'Skip rest', finishCapture, 'Next', () => setCaptureStep('primary-graphic-note'));
-    }
-
-    function renderCaptureLabelArea() {
-      const area = document.getElementById('capture-label-area');
-      if (!area) return;
-      area.innerHTML = '';
-      if (pendingLabelBlob) {
-        const box = document.createElement('div');
-        box.className = 'label-photo-box';
-        const img = document.createElement('img');
-        const url = URL.createObjectURL(pendingLabelBlob);
-        objectUrls.push(url);
-        img.src = url;
-        box.appendChild(img);
-        const meta = document.createElement('div');
-        meta.className = 'label-meta';
-        meta.textContent = 'Label photo attached';
-        box.appendChild(meta);
-        const rm = document.createElement('button');
-        rm.className = 'label-remove';
-        rm.textContent = 'Remove';
-        rm.addEventListener('click', () => {
-          pendingLabelBlob = null;
-          renderCaptureLabelArea();
-        });
-        box.appendChild(rm);
-        area.appendChild(box);
-      } else {
-        const btn = document.createElement('button');
-        btn.className = 'btn-secondary';
-        btn.style.width = '100%';
-        btn.style.padding = '0.75rem';
-        btn.style.borderRadius = '10px';
-        btn.style.marginBottom = '0.75rem';
-        btn.textContent = '+ Add label photo';
-        btn.addEventListener('click', () => {
-          labelInputTarget = 'capture';
-          document.getElementById('label-input').click();
-        });
-        area.appendChild(btn);
+      // Kind-specific details (when a kind is chosen, except 'other').
+      const kind = captureDraft.graphic_kind;
+      const fields = GRAPHIC_FIELDS[kind];
+      if (fields) {
+        c.appendChild(buildFormSection('Details', s => {
+          fields.forEach(f => s.appendChild(buildTextInputField(f.field, f.label)));
+        }));
       }
+
+      c.appendChild(buildFormSection('Personal note', s => {
+        const ta = buildNoteTextarea('note', 'A line or two about why this caught your eye…');
+        ta.rows = 3;
+        s.appendChild(ta);
+      }));
+      c.appendChild(buildSaveBar());
     }
 
-    function skipButton() {
-      const s = document.createElement('button');
-      s.className = 'btn-secondary';
-      s.style.width = '100%';
-      s.style.marginTop = '0.5rem';
-      s.style.padding = '0.75rem';
-      s.textContent = 'Skip for now (tag later)';
-      s.addEventListener('click', finishCapture);
-      return s;
-    }
 
     // ============================================================
     // LABEL-INPUT (shared by capture flow and detail view)
@@ -2333,10 +2151,7 @@
       event.target.value = '';
       if (!file) return;
 
-      if (labelInputTarget === 'capture') {
-        pendingLabelBlob = file;
-        renderCaptureLabelArea();
-      } else if (labelInputTarget === 'detail' && currentDetailRecord) {
+      if (labelInputTarget === 'detail' && currentDetailRecord) {
         currentDetailRecord.label_blob = file;
         await saveDetailRecord();
         renderDetail();
