@@ -469,20 +469,22 @@
     /* ============ CAPTURE — paper-shell tagger ============ */
     /* The tagger is always paper + ink, regardless of the device theme. */
     #view-capture {
-      padding: 0 0 90px;
+      padding: 0 0 84px;
       background: #F2EEE6;
       color: #0F0F0E;
     }
     #view-capture .gallery-header {
       background: rgba(242,238,230,0.85);
+      padding: 0.5rem 0.9rem;
+      min-height: 38px;
     }
     #view-capture .back-btn { color: #0F0F0E; }
     #view-capture .meta-date { color: rgba(15,15,14,0.62); }
 
     #capture-preview {
-      width: calc(100% - 32px);
-      margin: 0 16px;
-      max-height: 28vh;
+      width: calc(100% - 28px);
+      margin: 0 14px;
+      height: 84px;
       object-fit: cover;
       border-radius: 10px;
       background: #2a2a26;
@@ -496,23 +498,23 @@
 
     /* Swatch sections (paper-shell tagger) */
     .sw-section {
-      padding: 16px 16px 14px;
+      padding: 10px 14px 8px;
       border-bottom: 1px solid rgba(15,15,14,0.08);
     }
-    .sw-section-text { padding-bottom: 16px; }
+    .sw-section-text { padding: 10px 14px 10px; }
     .sw-section-head {
       display: flex; align-items: baseline; justify-content: space-between;
-      margin-bottom: 12px;
+      margin-bottom: 6px;
       gap: 12px;
     }
     .sw-section-label {
-      font-size: 0.75rem;
+      font-size: 0.72rem;
       font-weight: 500;
       color: rgba(15,15,14,0.62);
       letter-spacing: -0.005em;
     }
     .sw-section-summary {
-      font-size: 0.85rem;
+      font-size: 0.78rem;
       font-weight: 500;
       color: #0F0F0E;
       letter-spacing: -0.005em;
@@ -524,20 +526,21 @@
     .sw-grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      gap: 10px;
+      gap: 6px;
     }
     .sw-tile {
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 6px;
+      gap: 3px;
       background: transparent;
       padding: 0;
     }
     .sw-art {
       width: 100%;
       aspect-ratio: 1;
-      border-radius: 10px;
+      max-height: 56px;
+      border-radius: 8px;
       background: #FFFFFF;
       border: 1px solid rgba(15,15,14,0.16);
       color: #0F0F0E;
@@ -554,8 +557,8 @@
     }
     .sw-art .sw-check {
       position: absolute;
-      top: 5px; right: 5px;
-      width: 14px; height: 14px;
+      top: 3px; right: 3px;
+      width: 12px; height: 12px;
       border-radius: 99px;
       background: #A8EFB7;
       display: none;
@@ -564,19 +567,19 @@
     }
     .sw-art .sw-check::after {
       content: "";
-      width: 6px; height: 6px;
-      border-right: 2px solid #0F0F0E;
-      border-bottom: 2px solid #0F0F0E;
+      width: 5px; height: 5px;
+      border-right: 1.5px solid #0F0F0E;
+      border-bottom: 1.5px solid #0F0F0E;
       transform: rotate(45deg) translate(-1px, -1px);
     }
     .sw-tile.active .sw-art .sw-check { display: inline-flex; }
     .sw-label {
-      font-size: 0.7rem;
+      font-size: 0.66rem;
       font-weight: 500;
       color: rgba(15,15,14,0.62);
       letter-spacing: -0.005em;
       text-align: center;
-      line-height: 1.15;
+      line-height: 1.1;
     }
     .sw-tile.active .sw-label {
       color: #0F0F0E;
@@ -591,8 +594,8 @@
       color: #0F0F0E;
       border: 0;
       border-bottom: 1px solid rgba(15,15,14,0.25);
-      padding: 8px 0;
-      font-size: 0.95rem;
+      padding: 5px 0;
+      font-size: 0.92rem;
       font-family: var(--font-sans);
       letter-spacing: -0.005em;
       outline: none;
@@ -606,8 +609,8 @@
     .sw-save-bar {
       position: fixed;
       left: 0; right: 0;
-      bottom: max(env(safe-area-inset-bottom, 12px), 12px);
-      padding: 0 16px;
+      bottom: max(env(safe-area-inset-bottom, 10px), 10px);
+      padding: 0 14px;
       z-index: 20;
       pointer-events: none;
     }
@@ -617,9 +620,9 @@
       background: #0F0F0E;
       color: #F2EEE6;
       border: 0;
-      padding: 14px;
-      border-radius: 14px;
-      font-size: 1rem;
+      padding: 12px;
+      border-radius: 12px;
+      font-size: 0.95rem;
       font-weight: 600;
       letter-spacing: -0.01em;
       display: inline-flex;
@@ -2524,7 +2527,7 @@
       s.appendChild(head);
       const ta = document.createElement('textarea');
       ta.className = 'sw-line-input';
-      ta.rows = 2;
+      ta.rows = 1;
       ta.placeholder = 'A line about why this caught your eye…';
       ta.value = captureDraft.note || '';
       ta.addEventListener('input', () => {
