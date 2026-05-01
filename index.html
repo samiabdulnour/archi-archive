@@ -298,7 +298,7 @@
       font-weight: 600;
     }
     .cam-project-popup .item.new {
-      color: #A8EFB7;
+      color: #F2E961;
       border-top: 1px solid rgba(255,255,255,0.1);
       margin-top: 0.2rem;
       padding-top: 0.8rem;
@@ -448,6 +448,8 @@
       transition: opacity 180ms ease, transform 180ms ease;
       box-shadow: 0 0 0 0.5px rgba(0,0,0,0.4);
     }
+    /* Mode-tinted focus ring — green in reference, yellow in project. */
+    #view-camera.cam-mode-project .cam-focus { border-color: #F2E961; }
     .cam-focus.show {
       opacity: 1;
       transform: translate(-50%, -50%) scale(1);
@@ -466,15 +468,15 @@
       z-index: 20;
     }
 
-    /* ============ CAPTURE — paper-shell tagger ============ */
-    /* The tagger is always paper + ink, regardless of the device theme. */
+    /* ============ CAPTURE — green-shell tagger ============ */
+    /* Always reference green + ink, regardless of the device theme. */
     #view-capture {
       padding: 0 0 84px;
-      background: #F2EEE6;
+      background: #A8EFB7;
       color: #0F0F0E;
     }
     #view-capture .gallery-header {
-      background: rgba(242,238,230,0.85);
+      background: rgba(168,239,183,0.85);
       padding: 0.5rem 0.9rem;
       min-height: 38px;
     }
@@ -496,10 +498,10 @@
       display: none;
     }
 
-    /* Swatch sections (paper-shell tagger) */
+    /* Swatch sections (green-shell tagger) */
     .sw-section {
       padding: 10px 14px 8px;
-      border-bottom: 1px solid rgba(15,15,14,0.08);
+      border-bottom: 1px solid rgba(15,15,14,0.12);
     }
     .sw-section-text { padding: 10px 14px 10px; }
     .sw-section-head {
@@ -541,19 +543,18 @@
       aspect-ratio: 1;
       max-height: 56px;
       border-radius: 8px;
-      background: #FFFFFF;
-      border: 1px solid rgba(15,15,14,0.16);
+      background: #F2EEE6;
+      border: 1px solid rgba(15,15,14,0.0);
       color: #0F0F0E;
       display: flex; align-items: center; justify-content: center;
       position: relative;
       overflow: hidden;
-      transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+      transition: background 0.12s ease, color 0.12s ease;
     }
     .sw-art > svg { width: 60%; height: 60%; }
     .sw-tile.active .sw-art {
       background: #0F0F0E;
       color: #F2EEE6;
-      border-color: #0F0F0E;
     }
     .sw-art .sw-check {
       position: absolute;
@@ -586,7 +587,18 @@
       font-weight: 600;
     }
 
-    /* Single-line text input with hairline underline (Author · Year) */
+    /* Author + Year side-by-side inputs */
+    .sw-author-year-row {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 14px;
+      align-items: end;
+    }
+    .sw-author-cell, .sw-year-cell {
+      display: flex; flex-direction: column; gap: 4px;
+    }
+
+    /* Single-line text input with hairline underline (Author / Year / Note) */
     .sw-line-input {
       width: 100%;
       box-sizing: border-box;
@@ -1543,6 +1555,9 @@
       document.querySelectorAll('[data-cam-mode]').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.camMode === captureMode);
       });
+      const camView = document.getElementById('view-camera');
+      camView.classList.toggle('cam-mode-reference', captureMode === 'reference');
+      camView.classList.toggle('cam-mode-project',   captureMode === 'project');
 
       const typeTrigger  = document.getElementById('cam-type-trigger');
       const typeLabel    = document.getElementById('cam-type-label');
@@ -2493,25 +2508,46 @@
     function buildAuthorYearSection() {
       const s = document.createElement('div');
       s.className = 'sw-section sw-section-text';
-      const head = document.createElement('div');
-      head.className = 'sw-section-head';
-      const lbl = document.createElement('span');
-      lbl.className = 'sw-section-label';
-      lbl.textContent = 'Author · Year';
-      head.appendChild(lbl);
-      s.appendChild(head);
-      const inp = document.createElement('input');
-      inp.className = 'sw-line-input';
-      inp.type = 'text';
-      inp.placeholder = 'e.g. Kahn · 1972';
-      inp.value = [captureDraft.creator, captureDraft.year].filter(Boolean).join(' · ');
-      inp.addEventListener('input', () => {
-        // Split on " · " or comma for friendly entry
-        const parts = inp.value.split(/\s*[·,]\s*/);
-        captureDraft.creator = (parts[0] || '').trim() || null;
-        captureDraft.year    = (parts[1] || '').trim() || null;
+
+      const row = document.createElement('div');
+      row.className = 'sw-author-year-row';
+
+      const author = document.createElement('div');
+      author.className = 'sw-author-cell';
+      const aLbl = document.createElement('span');
+      aLbl.className = 'sw-section-label';
+      aLbl.textContent = 'Author';
+      const aInp = document.createElement('input');
+      aInp.className = 'sw-line-input';
+      aInp.type = 'text';
+      aInp.placeholder = 'e.g. Kahn';
+      aInp.value = captureDraft.creator || '';
+      aInp.addEventListener('input', () => {
+        captureDraft.creator = aInp.value.trim() || null;
       });
-      s.appendChild(inp);
+      author.appendChild(aLbl);
+      author.appendChild(aInp);
+
+      const year = document.createElement('div');
+      year.className = 'sw-year-cell';
+      const yLbl = document.createElement('span');
+      yLbl.className = 'sw-section-label';
+      yLbl.textContent = 'Year';
+      const yInp = document.createElement('input');
+      yInp.className = 'sw-line-input';
+      yInp.type = 'text';
+      yInp.inputMode = 'numeric';
+      yInp.placeholder = '1972';
+      yInp.value = captureDraft.year || '';
+      yInp.addEventListener('input', () => {
+        captureDraft.year = yInp.value.trim() || null;
+      });
+      year.appendChild(yLbl);
+      year.appendChild(yInp);
+
+      row.appendChild(author);
+      row.appendChild(year);
+      s.appendChild(row);
       return s;
     }
 
@@ -2538,7 +2574,7 @@
     }
 
     // ============================================================
-    // Element form: Element + Materiality + Concept + Author·Year + Note
+    // Element form: Element + Materiality + Author·Year + Personal note
     // ============================================================
     // First eight elements as a flat 2×4 grid (drops the four sub-group headers
     // — the design favours visual scan over taxonomy).
@@ -2546,7 +2582,6 @@
 
     function renderElementForm(c) {
       if (!captureDraft.materials) captureDraft.materials = [];
-      if (!captureDraft.concepts)  captureDraft.concepts  = [];
 
       c.appendChild(buildSwatchSection({
         label: 'Element',
@@ -2563,18 +2598,6 @@
         field: 'materials',
         multi: true,
         glyphFor: materialPatternSvg,
-      }));
-      c.appendChild(buildSwatchSection({
-        label: 'Concept',
-        getSummary: () => (captureDraft.concepts || []).map(id => {
-          const m = CONCEPTS.find(c => c.id === id);
-          return m ? m.label : id;
-        }).join(' · '),
-        items: CONCEPTS,
-        field: 'concepts',
-        multi: true,
-        glyphFor: c => conceptGlyph(c.id),
-        valueFor: c => c.id,
       }));
       c.appendChild(buildAuthorYearSection());
       c.appendChild(buildPersonalNoteSection());
@@ -2919,7 +2942,6 @@
       // Universal sections
       renderProjectField(body);
       renderNoteField(body);
-      renderVisualField(body);
       renderKeywordsField(body);
     }
 
@@ -3149,11 +3171,6 @@
       textarea.addEventListener('blur', saveDetailRecord);
       s.appendChild(textarea);
       body.appendChild(s);
-    }
-
-    // -------- Universal: Visual --------
-    function renderVisualField(body) {
-      body.appendChild(section('Visual character (multi)', buildChipPicker(VISUAL, 'visual', true)));
     }
 
     // -------- Universal: Keywords --------
