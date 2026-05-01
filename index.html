@@ -3,37 +3,44 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#7CEB7C">
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#F2EEE6">
   <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0F0F0E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <title>archi-archive</title>
   <style>
-    /* ============ THEME — Mint chartreuse light, near-black with mint accent in dark ============ */
+    /* ============ THEME — paper & ink, with mode-color accents ============ */
     :root {
       color-scheme: light dark;
 
-      /* Default = light (Mint chartreuse field, NaN-foundry direction) */
-      --bg: #7CEB7C;
-      --bg-elev: #FAFAF7;
-      --bg-elev-2: #F2F0E9;
-      --bg-input: #FAFAF7;
-      --text: #000000;
-      --text-muted: rgba(0,0,0,0.62);
-      --text-faint: rgba(0,0,0,0.4);
-      --border: rgba(0,0,0,0.5);
-      --border-strong: rgba(0,0,0,0.7);
-      --accent: #000000;
-      --accent-ink: #7CEB7C;
-      --danger: #c00;
-      --pill-bg: rgba(0,0,0,0.06);
-      --pill-active-bg: #000000;
-      --pill-active-text: #7CEB7C;
-      --overlay: rgba(0,0,0,0.45);
+      /* Default = light (paper surface, ink text) */
+      --bg: #F2EEE6;
+      --bg-elev: #FFFFFF;
+      --bg-elev-2: #EAE5DC;
+      --bg-input: #FFFFFF;
+      --text: #0F0F0E;
+      --text-muted: rgba(15,15,14,0.62);
+      --text-faint: rgba(15,15,14,0.38);
+      --border: rgba(15,15,14,0.16);
+      --border-strong: rgba(15,15,14,0.32);
+
+      /* Mode-coloured accents (applied selectively, not as a global tint) */
+      --reference: #A8EFB7;
+      --project:   #F2E961;
+      --save:      #FF5A4D;
+
+      /* Generic accent stays the ink — used for primary buttons, links, etc. */
+      --accent: #0F0F0E;
+      --accent-ink: #F2EEE6;
+      --danger: #FF5A4D;
+      --pill-bg: rgba(15,15,14,0.06);
+      --pill-active-bg: #0F0F0E;
+      --pill-active-text: #F2EEE6;
+      --overlay: rgba(15,15,14,0.45);
 
       --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Helvetica Neue", system-ui, sans-serif;
-      --font-mono: "JetBrains Mono", "SF Mono", Menlo, Monaco, "Courier New", monospace;
+      --font-mono: "Inter", -apple-system, BlinkMacSystemFont, system-ui, sans-serif; /* same — we no longer use a separate mono face */
     }
 
     @media (prefers-color-scheme: dark) {
@@ -42,17 +49,17 @@
         --bg-elev: #1A1A18;
         --bg-elev-2: #2A2A26;
         --bg-input: #1A1A18;
-        --text: #ECEAE4;
-        --text-muted: #A8A49B;
-        --text-faint: #6E6A62;
-        --border: #2A2A26;
-        --border-strong: #3A3A35;
-        --accent: #7CEB7C;
-        --accent-ink: #000000;
-        --danger: #ff453a;
-        --pill-bg: rgba(255,255,255,0.06);
-        --pill-active-bg: #7CEB7C;
-        --pill-active-text: #000000;
+        --text: #F2EEE6;
+        --text-muted: rgba(242,238,230,0.62);
+        --text-faint: rgba(242,238,230,0.38);
+        --border: rgba(242,238,230,0.14);
+        --border-strong: rgba(242,238,230,0.3);
+
+        --accent: #F2EEE6;
+        --accent-ink: #0F0F0E;
+        --pill-bg: rgba(242,238,230,0.08);
+        --pill-active-bg: #F2EEE6;
+        --pill-active-text: #0F0F0E;
         --overlay: rgba(0,0,0,0.65);
       }
     }
@@ -115,8 +122,7 @@
       font-family: var(--font-mono);
       font-size: 0.7rem;
       font-weight: 400;
-      letter-spacing: 0.18em;
-      text-transform: uppercase;
+      letter-spacing: -0.005em;
       color: var(--text-faint);
       margin: 0;
     }
@@ -229,8 +235,8 @@
       transition: opacity 0.1s ease, background 0.1s ease;
     }
     .cam-reuse-toggle.active {
-      background: #7CEB7C;
-      color: #000;
+      background: #A8EFB7;
+      color: #0F0F0E;
       opacity: 1;
     }
 
@@ -251,8 +257,8 @@
       max-width: 100%;
     }
     .cam-project-trigger.active {
-      background: #7CEB7C;
-      color: #000;
+      background: #F2E961;
+      color: #0F0F0E;
       font-weight: 600;
     }
     .cam-caret {
@@ -292,7 +298,7 @@
       font-weight: 600;
     }
     .cam-project-popup .item.new {
-      color: #7CEB7C;
+      color: #A8EFB7;
       border-top: 1px solid rgba(255,255,255,0.1);
       margin-top: 0.2rem;
       padding-top: 0.8rem;
@@ -317,13 +323,19 @@
     .cam-mode-btn {
       padding: 0.4rem 0.85rem;
       font-size: 0.78rem;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      color: #d6d6d6;
+      letter-spacing: -0.005em;
+      color: rgba(255,255,255,0.6);
       border-radius: 999px;
     }
-    .cam-mode-btn.active {
-      color: #7CEB7C;
+    .cam-mode-btn.active[data-cam-mode="reference"] {
+      background: #A8EFB7;
+      color: #0F0F0E;
+      font-weight: 600;
+    }
+    .cam-mode-btn.active[data-cam-mode="project"] {
+      background: #F2E961;
+      color: #0F0F0E;
+      font-weight: 600;
     }
 
     /* Shutter (centered, just above the bottom bar) */
@@ -348,6 +360,33 @@
     }
 
     /* Bottom bar: thumbnail | mode | flip */
+    .cam-lite {
+      display: inline-flex;
+      align-items: center;
+      gap: 0;
+      background: rgba(0,0,0,0.55);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border-radius: 999px;
+      padding: 3px;
+    }
+    .cam-lite-btn {
+      width: 30px; height: 26px;
+      border-radius: 999px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      letter-spacing: -0.005em;
+      color: rgba(255,255,255,0.55);
+      background: transparent;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .cam-lite-btn.active {
+      background: #fff;
+      color: #000;
+    }
+
     .cam-bottom-bar {
       position: absolute;
       left: 0; right: 0;
@@ -395,7 +434,7 @@
       position: absolute;
       width: 64px;
       height: 64px;
-      border: 1.5px solid #7CEB7C;
+      border: 1.5px solid #A8EFB7;
       border-radius: 4px;
       pointer-events: none;
       opacity: 0;
@@ -479,8 +518,7 @@
     .chip-group-label {
       font-family: var(--font-mono);
       font-size: 0.65rem;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
+      letter-spacing: -0.005em;
       color: var(--text-faint);
       margin: 0 0 0.4rem;
     }
@@ -517,8 +555,7 @@
     .form-label {
       font-family: var(--font-mono);
       font-size: 0.65rem;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
+      letter-spacing: -0.005em;
       color: var(--text-muted);
     }
 
@@ -676,8 +713,7 @@
       font-size: 0.62rem;
       padding: 2px 6px;
       border-radius: 999px;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
+      letter-spacing: -0.005em;
     }
 
     .empty-state {
@@ -709,8 +745,7 @@
     .section-title {
       font-family: var(--font-mono);
       font-size: 0.65rem;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
+      letter-spacing: -0.005em;
       color: var(--text-muted);
       margin: 0 0 0.15rem;
     }
@@ -861,14 +896,17 @@
     <!-- Centered shutter sits above the bottom bar -->
     <button class="cam-shutter" id="cam-shutter" aria-label="Take photo"></button>
 
-    <!-- Bottom bar: gallery thumbnail (left), mode toggle (center), flip (right) -->
+    <!-- Bottom bar: gallery thumb (left), mode toggle (center), L/F lite-or-full (right) -->
     <div class="cam-bottom-bar">
       <button class="cam-thumb empty" id="cam-thumb" aria-label="Gallery"></button>
       <div class="cam-mode">
         <button class="cam-mode-btn active" data-cam-mode="reference">Reference</button>
         <button class="cam-mode-btn" data-cam-mode="project">Project</button>
       </div>
-      <button class="cam-pill cam-icon" id="cam-flip" aria-label="Switch camera">&#8634;</button>
+      <div class="cam-lite" role="group" aria-label="Lite or Full tagging">
+        <button class="cam-lite-btn" data-lite="1" aria-label="Lite — save now, tag later">L</button>
+        <button class="cam-lite-btn active" data-lite="0" aria-label="Full — tag now">F</button>
+      </div>
     </div>
 
     <div class="cam-flash" id="cam-flash" aria-hidden="true"></div>
@@ -1308,15 +1346,30 @@
       showView('settings');
     });
 
-    document.getElementById('cam-flip').addEventListener('click', async () => {
-      cameraFacing = (cameraFacing === 'environment') ? 'user' : 'environment';
-      stopCameraStream();
-      await startCameraStream();
-    });
-
     document.querySelectorAll('[data-cam-mode]').forEach(btn => {
       btn.addEventListener('click', () => switchCameraMode(btn.dataset.camMode));
     });
+
+    // ----- L / F (Lite vs Full) toggle -----
+    function getLite() {
+      return localStorage.getItem('archi-archive:lite') === '1';
+    }
+    function setLite(v) {
+      if (v) localStorage.setItem('archi-archive:lite', '1');
+      else localStorage.removeItem('archi-archive:lite');
+      updateLiteUI();
+    }
+    function updateLiteUI() {
+      const lite = getLite();
+      document.querySelectorAll('[data-lite]').forEach(b => {
+        const isThis = (b.dataset.lite === '1') === lite;
+        b.classList.toggle('active', isThis);
+      });
+    }
+    document.querySelectorAll('[data-lite]').forEach(btn => {
+      btn.addEventListener('click', () => setLite(btn.dataset.lite === '1'));
+    });
+    updateLiteUI();
 
     // Projects the user typed in this session but haven't saved a photo into yet.
     let pendingNewProjects = [];
@@ -1580,23 +1633,36 @@
       flashShutter();
       const blob = await captureFrame();
       if (!blob) return;
+
       if (captureMode === 'project') {
         // Stay in the camera so the user can immediately shoot the next photo.
         await savePhotoToProject(blob);
         return;
       }
-      // Reference mode
+
+      // Reference mode — three branches: reuse-last, Lite, or Full.
       if (referenceReuseTags) {
-        // Auto-save with the reused tags; stay in the camera.
         pendingBlob = blob;
         pendingLabelBlob = null;
         captureDraft = { ...referenceReuseTags };
         captureBackStack = [];
         captureStep = null;
-        await finishCapture();
-        toast('Saved (reused tags)');
+        await finishCapture({ silent: true });
+        toast('Saved · reused tags');
         return;
       }
+      if (getLite()) {
+        // Lite mode: save with type only, surface "Tag now" escape in the toast.
+        pendingBlob = blob;
+        pendingLabelBlob = null;
+        captureDraft = { type: getReferenceType() };
+        captureBackStack = [];
+        captureStep = null;
+        const id = await finishCapture({ silent: true });
+        toastLiteSaved(id);
+        return;
+      }
+      // Full mode: open the form for the chosen type.
       stopCameraStream();
       startReferenceTagging(blob);
     }
@@ -2073,22 +2139,20 @@
     // ============================================================
     // Building form (single page, all sections)
     // ============================================================
+    // Per the design system: Building → Typology + Concept + Author·Year.
+    // Materiality belongs to Element only — a building's materiality reads as
+    // a list of its parts' materials, which is what the Element form captures.
     function renderBuildingForm(c) {
       if (!captureDraft.concepts) captureDraft.concepts = [];
-      if (!captureDraft.materials) captureDraft.materials = [];
 
       c.appendChild(buildFormSection('Typology', s => {
         s.appendChild(buildChipsContainer(getEffectiveTypology(), 'typology', false));
         s.appendChild(buildNoteTextarea('typology_note', 'Note about the typology…'));
       }));
-      c.appendChild(buildFormSection('Concepts (multi)', s => {
+      c.appendChild(buildFormSection('Concept', s => {
         const concepts = getEffectiveConcepts();
         s.appendChild(buildChipsContainer(concepts.map(x => x.label), 'concepts', true, concepts));
         s.appendChild(buildNoteTextarea('concepts_note', 'Note about the concepts…'));
-      }));
-      c.appendChild(buildFormSection('Materiality (multi)', s => {
-        s.appendChild(buildChipsContainer(getEffectiveMaterials(), 'materials', true));
-        s.appendChild(buildNoteTextarea('materials_note', 'Note about the materials…'));
       }));
       c.appendChild(buildFormSection('Architect & year', s => {
         s.appendChild(buildTextInputField('creator', 'Architect', 'e.g. Le Corbusier'));
@@ -2119,9 +2183,17 @@
         });
         s.appendChild(buildNoteTextarea('element_note', 'Note about the element…'));
       }));
-      c.appendChild(buildFormSection('Materiality (multi)', s => {
+      c.appendChild(buildFormSection('Materiality', s => {
         s.appendChild(buildChipsContainer(getEffectiveMaterials(), 'materials', true));
         s.appendChild(buildNoteTextarea('materials_note', 'Note about the materials…'));
+      }));
+      // Per design system: Element gets Concept too — joints, light, structure
+      // are concept readings of a single detail.
+      if (!captureDraft.concepts) captureDraft.concepts = [];
+      c.appendChild(buildFormSection('Concept', s => {
+        const concepts = getEffectiveConcepts();
+        s.appendChild(buildChipsContainer(concepts.map(x => x.label), 'concepts', true, concepts));
+        s.appendChild(buildNoteTextarea('concepts_note', 'Note about the concepts…'));
       }));
       c.appendChild(buildFormSection('Personal note', s => {
         const ta = buildNoteTextarea('note', 'A line or two about why this caught your eye…');
@@ -2220,7 +2292,7 @@
     // ============================================================
     // Finish capture — write to DB
     // ============================================================
-    async function finishCapture() {
+    async function finishCapture({ silent = false } = {}) {
       const t = captureDraft;
       const record = {
         blob: pendingBlob,
@@ -2256,10 +2328,11 @@
       };
       record.search_text = buildSearchText(record);
 
-      await dbAdd(record);
+      const id = await dbAdd(record);
       resetCapture();
       showView('home');
-      toast('Saved');
+      if (!silent) toast('Saved');
+      return id;
     }
 
     // ============================================================
@@ -2833,10 +2906,53 @@
     let toastTimer = null;
     function toast(msg) {
       const el = document.getElementById('toast');
+      el.innerHTML = '';
+      el.style.background = '';
+      el.style.color = '';
+      el.style.pointerEvents = 'none';
       el.textContent = msg;
       el.classList.add('show');
       clearTimeout(toastTimer);
       toastTimer = setTimeout(() => el.classList.remove('show'), 1500);
+    }
+
+    // Toast with a tappable action (the "Tag now" escape from a Lite save).
+    function toastWithAction(text, btnText, fn, { color = null, ms = 4500 } = {}) {
+      const el = document.getElementById('toast');
+      el.innerHTML = '';
+      if (color) {
+        el.style.background = color;
+        el.style.color = '#0F0F0E';
+      } else {
+        el.style.background = '';
+        el.style.color = '';
+      }
+      const span = document.createElement('span');
+      span.textContent = text;
+      el.appendChild(span);
+      if (btnText) {
+        const btn = document.createElement('button');
+        btn.textContent = btnText;
+        btn.style.cssText = 'margin-left:0.7rem; background:transparent; color:inherit; font-weight:600; padding:0; cursor:pointer;';
+        btn.addEventListener('click', () => {
+          el.classList.remove('show');
+          el.style.pointerEvents = 'none';
+          fn();
+        });
+        el.appendChild(btn);
+      }
+      el.classList.add('show');
+      el.style.pointerEvents = 'auto';
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        el.classList.remove('show');
+        el.style.pointerEvents = 'none';
+      }, ms);
+    }
+
+    function toastLiteSaved(id) {
+      const t = TYPES.find(x => x.id === getReferenceType()) || TYPES[0];
+      toastWithAction(`Saved as ${t.label.toLowerCase()}`, 'Tag now', () => openDetail(id), { color: '#A8EFB7' });
     }
 
     // ============================================================
