@@ -360,6 +360,11 @@
     }
 
     /* Bottom bar: thumbnail | mode | flip */
+    .cam-top-right {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
     .cam-lite {
       display: inline-flex;
       align-items: center;
@@ -461,21 +466,168 @@
       z-index: 20;
     }
 
-    /* ============ CAPTURE ============ */
-    #view-capture { padding: 0 0 1.5rem; }
+    /* ============ CAPTURE — paper-shell tagger ============ */
+    /* The tagger is always paper + ink, regardless of the device theme. */
+    #view-capture {
+      padding: 0 0 90px;
+      background: #F2EEE6;
+      color: #0F0F0E;
+    }
+    #view-capture .gallery-header {
+      background: rgba(242,238,230,0.85);
+    }
+    #view-capture .back-btn { color: #0F0F0E; }
+    #view-capture .meta-date { color: rgba(15,15,14,0.62); }
 
     #capture-preview {
-      width: 100%;
-      max-height: 38vh;
-      object-fit: contain;
-      border-radius: 14px;
-      background: var(--bg-elev-2);
+      width: calc(100% - 32px);
+      margin: 0 16px;
+      max-height: 28vh;
+      object-fit: cover;
+      border-radius: 10px;
+      background: #2a2a26;
+      display: block;
     }
 
     .step-question {
       /* Hidden — the header already shows the step name. */
       display: none;
     }
+
+    /* Swatch sections (paper-shell tagger) */
+    .sw-section {
+      padding: 16px 16px 14px;
+      border-bottom: 1px solid rgba(15,15,14,0.08);
+    }
+    .sw-section-text { padding-bottom: 16px; }
+    .sw-section-head {
+      display: flex; align-items: baseline; justify-content: space-between;
+      margin-bottom: 12px;
+      gap: 12px;
+    }
+    .sw-section-label {
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: rgba(15,15,14,0.62);
+      letter-spacing: -0.005em;
+    }
+    .sw-section-summary {
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: #0F0F0E;
+      letter-spacing: -0.005em;
+      max-width: 200px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .sw-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+    .sw-tile {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      background: transparent;
+      padding: 0;
+    }
+    .sw-art {
+      width: 100%;
+      aspect-ratio: 1;
+      border-radius: 10px;
+      background: #FFFFFF;
+      border: 1px solid rgba(15,15,14,0.16);
+      color: #0F0F0E;
+      display: flex; align-items: center; justify-content: center;
+      position: relative;
+      overflow: hidden;
+      transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+    }
+    .sw-art > svg { width: 60%; height: 60%; }
+    .sw-tile.active .sw-art {
+      background: #0F0F0E;
+      color: #F2EEE6;
+      border-color: #0F0F0E;
+    }
+    .sw-art .sw-check {
+      position: absolute;
+      top: 5px; right: 5px;
+      width: 14px; height: 14px;
+      border-radius: 99px;
+      background: #A8EFB7;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+    .sw-art .sw-check::after {
+      content: "";
+      width: 6px; height: 6px;
+      border-right: 2px solid #0F0F0E;
+      border-bottom: 2px solid #0F0F0E;
+      transform: rotate(45deg) translate(-1px, -1px);
+    }
+    .sw-tile.active .sw-art .sw-check { display: inline-flex; }
+    .sw-label {
+      font-size: 0.7rem;
+      font-weight: 500;
+      color: rgba(15,15,14,0.62);
+      letter-spacing: -0.005em;
+      text-align: center;
+      line-height: 1.15;
+    }
+    .sw-tile.active .sw-label {
+      color: #0F0F0E;
+      font-weight: 600;
+    }
+
+    /* Single-line text input with hairline underline (Author · Year) */
+    .sw-line-input {
+      width: 100%;
+      box-sizing: border-box;
+      background: transparent;
+      color: #0F0F0E;
+      border: 0;
+      border-bottom: 1px solid rgba(15,15,14,0.25);
+      padding: 8px 0;
+      font-size: 0.95rem;
+      font-family: var(--font-sans);
+      letter-spacing: -0.005em;
+      outline: none;
+      resize: vertical;
+    }
+    .sw-line-input:focus {
+      border-bottom-color: #0F0F0E;
+    }
+
+    /* Save bar — full-width ink button at the bottom of the capture view */
+    .sw-save-bar {
+      position: fixed;
+      left: 0; right: 0;
+      bottom: max(env(safe-area-inset-bottom, 12px), 12px);
+      padding: 0 16px;
+      z-index: 20;
+      pointer-events: none;
+    }
+    .sw-save-btn {
+      pointer-events: auto;
+      width: 100%;
+      background: #0F0F0E;
+      color: #F2EEE6;
+      border: 0;
+      padding: 14px;
+      border-radius: 14px;
+      font-size: 1rem;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .sw-save-btn:active { opacity: 0.85; }
 
     /* Capture flow chip layout: equal-width auto-fit grid (cleaner than flex-wrap). */
     #capture-step-container .chip-row {
@@ -851,16 +1003,6 @@
       </div>
 
       <div class="section">
-        <p class="section-title">Custom typologies</p>
-        <div id="settings-custom-typology"></div>
-      </div>
-
-      <div class="section">
-        <p class="section-title">Custom concepts</p>
-        <div id="settings-custom-concept"></div>
-      </div>
-
-      <div class="section">
         <p class="section-title">Custom materials</p>
         <div id="settings-custom-materiality"></div>
       </div>
@@ -887,7 +1029,13 @@
           <span class="cam-caret" id="cam-project-caret">&#9662;</span>
         </button>
       </div>
-      <button class="cam-pill cam-icon" id="cam-options" aria-label="Options">&#8943;</button>
+      <div class="cam-top-right">
+        <div class="cam-lite" role="group" aria-label="Lite or Full tagging">
+          <button class="cam-lite-btn" data-lite="1" aria-label="Lite — save now, tag later">L</button>
+          <button class="cam-lite-btn active" data-lite="0" aria-label="Full — tag now">F</button>
+        </div>
+        <button class="cam-pill cam-icon" id="cam-options" aria-label="Options">&#8943;</button>
+      </div>
     </div>
 
     <!-- Shared dropdown popup, anchored under the top-left -->
@@ -896,17 +1044,14 @@
     <!-- Centered shutter sits above the bottom bar -->
     <button class="cam-shutter" id="cam-shutter" aria-label="Take photo"></button>
 
-    <!-- Bottom bar: gallery thumb (left), mode toggle (center), L/F lite-or-full (right) -->
+    <!-- Bottom bar: gallery thumb (left), mode toggle (center), flip-camera (right) -->
     <div class="cam-bottom-bar">
       <button class="cam-thumb empty" id="cam-thumb" aria-label="Gallery"></button>
       <div class="cam-mode">
         <button class="cam-mode-btn active" data-cam-mode="reference">Reference</button>
         <button class="cam-mode-btn" data-cam-mode="project">Project</button>
       </div>
-      <div class="cam-lite" role="group" aria-label="Lite or Full tagging">
-        <button class="cam-lite-btn" data-lite="1" aria-label="Lite — save now, tag later">L</button>
-        <button class="cam-lite-btn active" data-lite="0" aria-label="Full — tag now">F</button>
-      </div>
+      <button class="cam-pill cam-icon" id="cam-flip" aria-label="Switch camera">&#8634;</button>
     </div>
 
     <div class="cam-flash" id="cam-flash" aria-hidden="true"></div>
@@ -1346,6 +1491,11 @@
       showView('settings');
     });
 
+    document.getElementById('cam-flip').addEventListener('click', async () => {
+      cameraFacing = (cameraFacing === 'environment') ? 'user' : 'environment';
+      stopCameraStream();
+      await startCameraStream();
+    });
     document.querySelectorAll('[data-cam-mode]').forEach(btn => {
       btn.addEventListener('click', () => switchCameraMode(btn.dataset.camMode));
     });
@@ -1757,8 +1907,6 @@
 
     async function renderSettings() {
       renderSettingsSteps();
-      renderSettingsCustom('typology', 'settings-custom-typology');
-      renderSettingsCustom('concept', 'settings-custom-concept');
       renderSettingsCustom('materiality', 'settings-custom-materiality');
 
       const list = document.getElementById('settings-projects-list');
@@ -2051,6 +2199,156 @@
     // ============================================================
     // Form helpers (single-page Building/Element/Graphic forms)
     // ============================================================
+    // ============================================================
+    // SVG glyphs for the swatch tiles (typology / concept / element / material)
+    // Ported from the design files. fill="currentColor" so they invert on active tiles.
+    // ============================================================
+    const TYPOLOGY_GLYPHS = {
+      Residential:  '<path d="M6 20 L20 6 L34 20 V34 H6 Z" fill="currentColor"/>',
+      Office:       '<g fill="currentColor"><rect x="8" y="8" width="24" height="26"/><g fill="#F2EEE6"><rect x="11" y="12" width="4" height="4"/><rect x="18" y="12" width="4" height="4"/><rect x="25" y="12" width="4" height="4"/><rect x="11" y="19" width="4" height="4"/><rect x="18" y="19" width="4" height="4"/><rect x="25" y="19" width="4" height="4"/><rect x="11" y="26" width="4" height="4"/><rect x="25" y="26" width="4" height="4"/></g></g>',
+      Cultural:     '<g fill="currentColor"><polygon points="20,6 36,16 4,16"/><rect x="6" y="16" width="3" height="14"/><rect x="13" y="16" width="3" height="14"/><rect x="24" y="16" width="3" height="14"/><rect x="31" y="16" width="3" height="14"/><rect x="4" y="30" width="32" height="3"/></g>',
+      Educational:  '<g fill="currentColor"><rect x="6" y="14" width="28" height="20"/><polygon points="6,14 20,6 34,14"/><rect x="17" y="22" width="6" height="12" fill="#F2EEE6"/></g>',
+      Religious:    '<g fill="currentColor"><rect x="6" y="20" width="28" height="14"/><path d="M6 20 Q20 6 34 20 Z"/><rect x="18" y="10" width="4" height="10"/><rect x="14" y="14" width="12" height="3"/></g>',
+      Civic:        '<g fill="currentColor"><rect x="6" y="14" width="28" height="20"/><polygon points="6,14 20,6 34,14"/><circle cx="20" cy="22" r="3" fill="#F2EEE6"/></g>',
+      Commercial:   '<g fill="currentColor"><rect x="8" y="10" width="24" height="24"/><rect x="11" y="14" width="6" height="6" fill="#F2EEE6"/><rect x="23" y="14" width="6" height="6" fill="#F2EEE6"/><rect x="11" y="24" width="18" height="2" fill="#F2EEE6"/></g>',
+      Hospitality:  '<g fill="currentColor"><rect x="6" y="12" width="28" height="22"/><rect x="10" y="16" width="3" height="3" fill="#F2EEE6"/><rect x="16" y="16" width="3" height="3" fill="#F2EEE6"/><rect x="22" y="16" width="3" height="3" fill="#F2EEE6"/><rect x="28" y="16" width="3" height="3" fill="#F2EEE6"/><rect x="10" y="22" width="3" height="3" fill="#F2EEE6"/><rect x="16" y="22" width="3" height="3" fill="#F2EEE6"/><rect x="22" y="22" width="3" height="3" fill="#F2EEE6"/><rect x="28" y="22" width="3" height="3" fill="#F2EEE6"/></g>',
+      Industrial:   '<g fill="currentColor"><polygon points="4,34 4,18 12,22 12,14 20,18 20,14 28,18 28,14 36,18 36,34"/></g>',
+      'Heritage/Ruin': '<g fill="currentColor"><rect x="6" y="14" width="28" height="20"/><polygon points="6,14 20,4 34,14"/><rect x="14" y="20" width="4" height="14" fill="#F2EEE6"/><rect x="22" y="20" width="4" height="14" fill="#F2EEE6"/><circle cx="20" cy="11" r="1.5" fill="#F2EEE6"/></g>',
+      Other:        '<g fill="currentColor"><circle cx="20" cy="20" r="14"/><text x="20" y="26" text-anchor="middle" fill="#F2EEE6" font-size="16" font-family="Inter" font-weight="600">?</text></g>',
+    };
+    function typologyGlyph(name) {
+      return `<svg width="40" height="40" viewBox="0 0 40 40">${TYPOLOGY_GLYPHS[name] || ''}</svg>`;
+    }
+
+    const CONCEPT_GLYPHS = {
+      form:        '<path d="M8 28 L20 8 L32 28 Z" fill="currentColor"/>',
+      space:       '<rect x="8" y="8" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none"/>',
+      light:       '<g><circle cx="20" cy="20" r="6" fill="currentColor"/><g stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><line x1="20" y1="4" x2="20" y2="9"/><line x1="20" y1="31" x2="20" y2="36"/><line x1="4" y1="20" x2="9" y2="20"/><line x1="31" y1="20" x2="36" y2="20"/><line x1="8" y1="8" x2="11" y2="11"/><line x1="29" y1="29" x2="32" y2="32"/><line x1="32" y1="8" x2="29" y2="11"/><line x1="11" y1="29" x2="8" y2="32"/></g></g>',
+      materiality: '<g fill="currentColor"><rect x="6" y="6" width="9" height="9"/><rect x="17" y="6" width="9" height="9" opacity="0.45"/><rect x="28" y="6" width="6" height="9" opacity="0.7"/><rect x="6" y="17" width="6" height="9" opacity="0.6"/><rect x="14" y="17" width="12" height="9"/><rect x="28" y="17" width="6" height="9" opacity="0.3"/><rect x="6" y="28" width="14" height="6" opacity="0.5"/><rect x="22" y="28" width="12" height="6"/></g>',
+      structure:   '<g stroke="currentColor" stroke-width="2" fill="none"><line x1="6" y1="34" x2="34" y2="34"/><line x1="10" y1="34" x2="10" y2="10"/><line x1="30" y1="34" x2="30" y2="10"/><line x1="10" y1="10" x2="30" y2="10"/><line x1="10" y1="34" x2="30" y2="10"/><line x1="30" y1="34" x2="10" y2="10"/></g>',
+      context:     '<g stroke="currentColor" stroke-width="1.8" fill="none"><circle cx="20" cy="20" r="13"/><circle cx="20" cy="20" r="7"/><circle cx="20" cy="20" r="2" fill="currentColor"/></g>',
+      circulation: '<path d="M6 20 Q14 6 20 20 T34 20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/>',
+      craft:       '<g stroke="currentColor" stroke-width="1.6" fill="none"><path d="M8 12 L32 12 M8 20 L32 20 M8 28 L32 28"/><path d="M14 8 L14 32 M26 8 L26 32"/></g>',
+    };
+    function conceptGlyph(id) {
+      return `<svg width="40" height="40" viewBox="0 0 40 40">${CONCEPT_GLYPHS[id] || ''}</svg>`;
+    }
+
+    const ELEMENT_GLYPHS = {
+      Column:   '<g fill="currentColor"><rect x="14" y="6" width="12" height="3"/><rect x="14" y="31" width="12" height="3"/><rect x="17" y="9" width="6" height="22"/></g>',
+      Wall:     '<rect x="6" y="6" width="28" height="28" fill="currentColor"/>',
+      Arch:     '<g fill="currentColor"><rect x="6" y="22" width="6" height="12"/><rect x="28" y="22" width="6" height="12"/><path d="M6 22 Q6 6 20 6 Q34 6 34 22 L28 22 Q28 12 20 12 Q12 12 12 22 Z"/></g>',
+      Door:     '<g fill="currentColor"><rect x="10" y="6" width="20" height="28"/><circle cx="26" cy="20" r="1.5" fill="#F2EEE6"/></g>',
+      Window:   '<g fill="currentColor"><rect x="6" y="8" width="28" height="24"/><g fill="#F2EEE6"><rect x="9" y="11" width="9" height="9"/><rect x="22" y="11" width="9" height="9"/><rect x="9" y="22" width="9" height="7"/><rect x="22" y="22" width="9" height="7"/></g></g>',
+      Stair:    '<g fill="currentColor"><rect x="6" y="28" width="28" height="6"/><rect x="10" y="22" width="24" height="6"/><rect x="14" y="16" width="20" height="6"/><rect x="18" y="10" width="16" height="6"/></g>',
+      Ramp:     '<polygon points="6,34 34,34 34,6" fill="currentColor"/>',
+      Roof:     '<polygon points="4,22 20,6 36,22 36,26 4,26" fill="currentColor"/>',
+      Ceiling:  '<g fill="currentColor"><rect x="4" y="6" width="32" height="6"/></g><g stroke="currentColor" stroke-width="1.4"><line x1="8" y1="14" x2="8" y2="34"/><line x1="14" y1="14" x2="14" y2="34"/><line x1="20" y1="14" x2="20" y2="34"/><line x1="26" y1="14" x2="26" y2="34"/><line x1="32" y1="14" x2="32" y2="34"/></g>',
+      Floor:    '<g fill="currentColor"><rect x="4" y="28" width="32" height="6"/></g><g stroke="currentColor" stroke-width="1.2"><line x1="4" y1="22" x2="36" y2="22"/><line x1="4" y1="16" x2="36" y2="16"/><line x1="4" y1="10" x2="36" y2="10"/></g>',
+      Facade:   '<g fill="currentColor"><rect x="6" y="6" width="28" height="28"/></g><g fill="#F2EEE6"><rect x="9" y="9" width="3" height="6"/><rect x="14" y="9" width="3" height="6"/><rect x="19" y="9" width="3" height="6"/><rect x="24" y="9" width="3" height="6"/><rect x="29" y="9" width="2" height="6"/><rect x="9" y="18" width="3" height="6"/><rect x="14" y="18" width="3" height="6"/><rect x="19" y="18" width="3" height="6"/><rect x="24" y="18" width="3" height="6"/><rect x="29" y="18" width="2" height="6"/><rect x="9" y="27" width="3" height="5"/><rect x="14" y="27" width="3" height="5"/><rect x="19" y="27" width="3" height="5"/><rect x="24" y="27" width="3" height="5"/></g>',
+      Cornice:  '<g fill="currentColor"><rect x="4" y="10" width="32" height="3"/><rect x="6" y="13" width="28" height="3"/><rect x="8" y="16" width="24" height="14"/></g>',
+      Railing:  '<g fill="currentColor"><rect x="4" y="14" width="32" height="3"/><rect x="6" y="17" width="3" height="14"/><rect x="14" y="17" width="3" height="14"/><rect x="22" y="17" width="3" height="14"/><rect x="30" y="17" width="3" height="14"/><rect x="4" y="31" width="32" height="3"/></g>',
+      Joint:    '<g fill="currentColor"><rect x="6" y="6" width="13" height="13"/><rect x="21" y="6" width="13" height="13"/><rect x="6" y="21" width="13" height="13"/><rect x="21" y="21" width="13" height="13"/></g>',
+      Pavement: '<g fill="currentColor"><rect x="4" y="4" width="14" height="14"/><rect x="20" y="4" width="16" height="14"/><rect x="4" y="20" width="16" height="16"/><rect x="22" y="20" width="14" height="16"/></g>',
+      Threshold:'<g fill="currentColor"><rect x="4" y="14" width="32" height="12"/></g><g stroke="#F2EEE6" stroke-width="1.4"><line x1="10" y1="14" x2="10" y2="26"/><line x1="20" y1="14" x2="20" y2="26"/><line x1="30" y1="14" x2="30" y2="26"/></g>',
+      Balcony:  '<g fill="currentColor"><rect x="6" y="20" width="28" height="14"/></g><g fill="#F2EEE6"><rect x="9" y="23" width="2" height="8"/><rect x="14" y="23" width="2" height="8"/><rect x="19" y="23" width="2" height="8"/><rect x="24" y="23" width="2" height="8"/><rect x="29" y="23" width="2" height="8"/></g>',
+      Beam:     '<g fill="currentColor"><rect x="4" y="14" width="32" height="6"/><rect x="4" y="22" width="32" height="3"/></g>',
+      Vault:    '<path d="M6 30 Q6 8 20 8 Q34 8 34 30" stroke="currentColor" stroke-width="3" fill="none"/>',
+      Dome:     '<g fill="currentColor"><path d="M6 30 Q6 6 20 6 Q34 6 34 30 Z"/><rect x="6" y="30" width="28" height="3" fill="#F2EEE6"/></g>',
+      Truss:    '<g stroke="currentColor" stroke-width="1.6" fill="none"><line x1="4" y1="32" x2="36" y2="32"/><line x1="4" y1="32" x2="20" y2="8"/><line x1="36" y1="32" x2="20" y2="8"/><line x1="14" y1="32" x2="20" y2="8"/><line x1="26" y1="32" x2="20" y2="8"/></g>',
+      Corridor: '<g fill="currentColor"><rect x="4" y="14" width="32" height="3"/><rect x="4" y="23" width="32" height="3"/></g>',
+    };
+    function elementGlyph(name) {
+      return `<svg width="40" height="40" viewBox="0 0 40 40">${ELEMENT_GLYPHS[name] || ''}</svg>`;
+    }
+
+    // Material hatch patterns — each tile is a 70×70 fill with a unique hatch.
+    function materialPatternSvg(name) {
+      const id = 'mat-' + name.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const map = {
+        Concrete: `<pattern id="${id}" width="6" height="6" patternUnits="userSpaceOnUse"><circle cx="1.5" cy="1.5" r="0.6" fill="currentColor"/><circle cx="4.5" cy="3.5" r="0.5" fill="currentColor"/><circle cx="2.2" cy="4.8" r="0.4" fill="currentColor"/></pattern>`,
+        'Brick/Masonry': `<pattern id="${id}" width="14" height="8" patternUnits="userSpaceOnUse"><rect x="0" y="0" width="13" height="3" fill="none" stroke="currentColor" stroke-width="0.7"/><rect x="-7" y="4" width="13" height="3" fill="none" stroke="currentColor" stroke-width="0.7"/><rect x="7" y="4" width="13" height="3" fill="none" stroke="currentColor" stroke-width="0.7"/></pattern>`,
+        Stone: `<pattern id="${id}" width="16" height="16" patternUnits="userSpaceOnUse"><path d="M0 5 L6 3 L12 6 L16 5" stroke="currentColor" stroke-width="0.6" fill="none"/><path d="M0 11 L4 9 L9 12 L16 11" stroke="currentColor" stroke-width="0.6" fill="none"/><path d="M3 0 V4 M9 4 V9 M5 9 V16" stroke="currentColor" stroke-width="0.5"/></pattern>`,
+        Timber: `<pattern id="${id}" width="20" height="6" patternUnits="userSpaceOnUse"><path d="M0 2 Q5 1 10 2 T20 2" stroke="currentColor" stroke-width="0.6" fill="none"/><path d="M0 4 Q5 5 10 4 T20 4" stroke="currentColor" stroke-width="0.5" fill="none"/></pattern>`,
+        Steel: `<pattern id="${id}" width="6" height="6" patternUnits="userSpaceOnUse"><line x1="0" y1="0" x2="6" y2="6" stroke="currentColor" stroke-width="0.6"/></pattern>`,
+        'Other Metals': `<pattern id="${id}" width="6" height="6" patternUnits="userSpaceOnUse"><line x1="0" y1="0" x2="6" y2="6" stroke="currentColor" stroke-width="0.6"/><line x1="6" y1="0" x2="0" y2="6" stroke="currentColor" stroke-width="0.6"/></pattern>`,
+        Glass: `<pattern id="${id}" width="10" height="10" patternUnits="userSpaceOnUse"><line x1="0" y1="2" x2="10" y2="2" stroke="currentColor" stroke-width="0.4" opacity="0.5"/><line x1="0" y1="6" x2="10" y2="6" stroke="currentColor" stroke-width="0.4" opacity="0.5"/></pattern>`,
+        'Earth/Rammed': `<pattern id="${id}" width="8" height="8" patternUnits="userSpaceOnUse"><path d="M0 4 Q2 2 4 4 T8 4" stroke="currentColor" stroke-width="0.5" fill="none"/></pattern>`,
+        'Ceramic/Tile': `<pattern id="${id}" width="8" height="8" patternUnits="userSpaceOnUse"><rect width="8" height="8" fill="none" stroke="currentColor" stroke-width="0.5"/></pattern>`,
+        'Plaster/Render': `<pattern id="${id}" width="14" height="14" patternUnits="userSpaceOnUse"><circle cx="3" cy="3" r="0.4" fill="currentColor" opacity="0.6"/><circle cx="9" cy="6" r="0.3" fill="currentColor" opacity="0.6"/><circle cx="5" cy="10" r="0.3" fill="currentColor" opacity="0.6"/><circle cx="11" cy="11" r="0.4" fill="currentColor" opacity="0.6"/></pattern>`,
+        'Textile/Soft': `<pattern id="${id}" width="6" height="6" patternUnits="userSpaceOnUse"><line x1="0" y1="0" x2="6" y2="0" stroke="currentColor" stroke-width="0.4"/><line x1="0" y1="3" x2="6" y2="3" stroke="currentColor" stroke-width="0.4"/><line x1="0" y1="0" x2="0" y2="6" stroke="currentColor" stroke-width="0.4"/><line x1="3" y1="0" x2="3" y2="6" stroke="currentColor" stroke-width="0.4"/></pattern>`,
+      };
+      const def = map[name] || `<pattern id="${id}" width="4" height="4" patternUnits="userSpaceOnUse"><rect width="4" height="4" fill="none"/></pattern>`;
+      return `<svg width="56" height="56" viewBox="0 0 56 56" preserveAspectRatio="none"><defs>${def}</defs><rect width="56" height="56" fill="url(#${id})"/></svg>`;
+    }
+
+    // Renders one swatch tile: glyph art on top, label below. Selection inverts the art.
+    function buildSwatchTile({ value, label, glyphHtml, isActive, onTap }) {
+      const tile = document.createElement('button');
+      tile.className = 'sw-tile' + (isActive ? ' active' : '');
+      tile.setAttribute('data-value', value);
+      tile.innerHTML = `
+        <div class="sw-art">${glyphHtml}<span class="sw-check"></span></div>
+        <div class="sw-label">${label}</div>
+      `;
+      tile.addEventListener('click', onTap);
+      return tile;
+    }
+
+    // Render a section (label + summary + 4-col grid of swatch tiles).
+    function buildSwatchSection({ label, getSummary, items, field, multi, glyphFor, valueFor }) {
+      const section = document.createElement('div');
+      section.className = 'sw-section';
+
+      const head = document.createElement('div');
+      head.className = 'sw-section-head';
+      const lbl = document.createElement('span');
+      lbl.className = 'sw-section-label';
+      lbl.textContent = label;
+      const sum = document.createElement('span');
+      sum.className = 'sw-section-summary';
+      head.appendChild(lbl);
+      head.appendChild(sum);
+      section.appendChild(head);
+
+      const grid = document.createElement('div');
+      grid.className = 'sw-grid';
+      section.appendChild(grid);
+
+      const refresh = () => {
+        sum.textContent = getSummary();
+        grid.innerHTML = '';
+        items.forEach(item => {
+          const value = valueFor ? valueFor(item) : item;
+          const labelText = (typeof item === 'object' && item.label) ? item.label : item;
+          const isActive = multi
+            ? (captureDraft[field] || []).includes(value)
+            : captureDraft[field] === value;
+          const tile = buildSwatchTile({
+            value,
+            label: labelText,
+            glyphHtml: glyphFor(item),
+            isActive,
+            onTap: () => {
+              if (multi) {
+                if (!captureDraft[field]) captureDraft[field] = [];
+                const arr = captureDraft[field];
+                const idx = arr.indexOf(value);
+                if (idx === -1) arr.push(value);
+                else arr.splice(idx, 1);
+              } else {
+                captureDraft[field] = (captureDraft[field] === value) ? null : value;
+              }
+              refresh();
+            },
+          });
+          grid.appendChild(tile);
+        });
+      };
+      refresh();
+      return section;
+    }
+
     function buildFormSection(title, build) {
       const s = document.createElement('div');
       s.className = 'section';
@@ -2127,12 +2425,32 @@
 
     function buildSaveBar() {
       const bar = document.createElement('div');
-      bar.className = 'capture-actions';
-      const save = document.createElement('button');
-      save.className = 'btn-primary';
-      save.textContent = 'Save';
-      save.addEventListener('click', finishCapture);
-      bar.appendChild(save);
+      bar.className = 'sw-save-bar';
+      const btn = document.createElement('button');
+      btn.className = 'sw-save-btn';
+      const update = () => {
+        const t = captureDraft;
+        let n = 0;
+        if (t.typology) n++;
+        if (t.element_name) n++;
+        if (t.graphic_kind) n++;
+        n += (t.concepts || []).length;
+        n += (t.materials || []).length;
+        if (t.creator) n++;
+        if (t.year) n++;
+        if (t.note) n++;
+        btn.innerHTML = (n > 0
+          ? `Save · ${n} ${n === 1 ? 'tag' : 'tags'}`
+          : 'Save without tags') + ' &rarr;';
+      };
+      btn.addEventListener('click', finishCapture);
+      bar.appendChild(btn);
+      // Re-count whenever the user touches anything in the form.
+      const observer = new MutationObserver(update);
+      // Recount on any click — the save bar re-evaluates after each tap.
+      document.addEventListener('click', update, true);
+      document.addEventListener('input', update, true);
+      update();
       return bar;
     }
 
@@ -2140,66 +2458,123 @@
     // Building form (single page, all sections)
     // ============================================================
     // Per the design system: Building → Typology + Concept + Author·Year.
-    // Materiality belongs to Element only — a building's materiality reads as
-    // a list of its parts' materials, which is what the Element form captures.
+    // Eight tiles per section, fixed 2×4 grid, glyph + label per tile.
     function renderBuildingForm(c) {
       if (!captureDraft.concepts) captureDraft.concepts = [];
 
-      c.appendChild(buildFormSection('Typology', s => {
-        s.appendChild(buildChipsContainer(getEffectiveTypology(), 'typology', false));
-        s.appendChild(buildNoteTextarea('typology_note', 'Note about the typology…'));
+      c.appendChild(buildSwatchSection({
+        label: 'Typology',
+        getSummary: () => captureDraft.typology || '',
+        items: TYPOLOGY.slice(0, 8),
+        field: 'typology',
+        multi: false,
+        glyphFor: typologyGlyph,
       }));
-      c.appendChild(buildFormSection('Concept', s => {
-        const concepts = getEffectiveConcepts();
-        s.appendChild(buildChipsContainer(concepts.map(x => x.label), 'concepts', true, concepts));
-        s.appendChild(buildNoteTextarea('concepts_note', 'Note about the concepts…'));
+      c.appendChild(buildSwatchSection({
+        label: 'Concept',
+        getSummary: () => (captureDraft.concepts || []).map(id => {
+          const m = CONCEPTS.find(c => c.id === id);
+          return m ? m.label : id;
+        }).join(' · '),
+        items: CONCEPTS,
+        field: 'concepts',
+        multi: true,
+        glyphFor: c => conceptGlyph(c.id),
+        valueFor: c => c.id,
       }));
-      c.appendChild(buildFormSection('Architect & year', s => {
-        s.appendChild(buildTextInputField('creator', 'Architect', 'e.g. Le Corbusier'));
-        s.appendChild(buildTextInputField('year',    'Year',      'e.g. 1952'));
-      }));
-      c.appendChild(buildFormSection('Personal note', s => {
-        const ta = buildNoteTextarea('note', 'A line or two about why this caught your eye…');
-        ta.rows = 3;
-        s.appendChild(ta);
-      }));
+      c.appendChild(buildAuthorYearSection());
+      c.appendChild(buildPersonalNoteSection());
       c.appendChild(buildSaveBar());
     }
 
+    function buildAuthorYearSection() {
+      const s = document.createElement('div');
+      s.className = 'sw-section sw-section-text';
+      const head = document.createElement('div');
+      head.className = 'sw-section-head';
+      const lbl = document.createElement('span');
+      lbl.className = 'sw-section-label';
+      lbl.textContent = 'Author · Year';
+      head.appendChild(lbl);
+      s.appendChild(head);
+      const inp = document.createElement('input');
+      inp.className = 'sw-line-input';
+      inp.type = 'text';
+      inp.placeholder = 'e.g. Kahn · 1972';
+      inp.value = [captureDraft.creator, captureDraft.year].filter(Boolean).join(' · ');
+      inp.addEventListener('input', () => {
+        // Split on " · " or comma for friendly entry
+        const parts = inp.value.split(/\s*[·,]\s*/);
+        captureDraft.creator = (parts[0] || '').trim() || null;
+        captureDraft.year    = (parts[1] || '').trim() || null;
+      });
+      s.appendChild(inp);
+      return s;
+    }
+
+    function buildPersonalNoteSection() {
+      const s = document.createElement('div');
+      s.className = 'sw-section sw-section-text';
+      const head = document.createElement('div');
+      head.className = 'sw-section-head';
+      const lbl = document.createElement('span');
+      lbl.className = 'sw-section-label';
+      lbl.textContent = 'Personal note';
+      head.appendChild(lbl);
+      s.appendChild(head);
+      const ta = document.createElement('textarea');
+      ta.className = 'sw-line-input';
+      ta.rows = 2;
+      ta.placeholder = 'A line about why this caught your eye…';
+      ta.value = captureDraft.note || '';
+      ta.addEventListener('input', () => {
+        captureDraft.note = ta.value.trim() || null;
+      });
+      s.appendChild(ta);
+      return s;
+    }
+
     // ============================================================
-    // Element form (single page)
+    // Element form: Element + Materiality + Concept + Author·Year + Note
     // ============================================================
+    // First eight elements as a flat 2×4 grid (drops the four sub-group headers
+    // — the design favours visual scan over taxonomy).
+    const ELEMENTS_TOP_8 = ['Column', 'Wall', 'Arch', 'Door', 'Window', 'Stair', 'Ramp', 'Roof'];
+
     function renderElementForm(c) {
       if (!captureDraft.materials) captureDraft.materials = [];
+      if (!captureDraft.concepts)  captureDraft.concepts  = [];
 
-      // Element name has grouped chips (Structural / Circulation / Enclosure / Ornament).
-      c.appendChild(buildFormSection('Element', s => {
-        Object.entries(ELEMENT_GROUPS).forEach(([groupName, items]) => {
-          const g = document.createElement('div');
-          g.className = 'chip-group';
-          g.innerHTML = `<p class="chip-group-label">${groupName}</p>`;
-          g.appendChild(buildChipsContainer(items, 'element_name', false));
-          s.appendChild(g);
-        });
-        s.appendChild(buildNoteTextarea('element_note', 'Note about the element…'));
+      c.appendChild(buildSwatchSection({
+        label: 'Element',
+        getSummary: () => captureDraft.element_name || '',
+        items: ELEMENTS_TOP_8,
+        field: 'element_name',
+        multi: false,
+        glyphFor: elementGlyph,
       }));
-      c.appendChild(buildFormSection('Materiality', s => {
-        s.appendChild(buildChipsContainer(getEffectiveMaterials(), 'materials', true));
-        s.appendChild(buildNoteTextarea('materials_note', 'Note about the materials…'));
+      c.appendChild(buildSwatchSection({
+        label: 'Materiality',
+        getSummary: () => (captureDraft.materials || []).join(' · '),
+        items: MATERIALS.slice(0, 8),
+        field: 'materials',
+        multi: true,
+        glyphFor: materialPatternSvg,
       }));
-      // Per design system: Element gets Concept too — joints, light, structure
-      // are concept readings of a single detail.
-      if (!captureDraft.concepts) captureDraft.concepts = [];
-      c.appendChild(buildFormSection('Concept', s => {
-        const concepts = getEffectiveConcepts();
-        s.appendChild(buildChipsContainer(concepts.map(x => x.label), 'concepts', true, concepts));
-        s.appendChild(buildNoteTextarea('concepts_note', 'Note about the concepts…'));
+      c.appendChild(buildSwatchSection({
+        label: 'Concept',
+        getSummary: () => (captureDraft.concepts || []).map(id => {
+          const m = CONCEPTS.find(c => c.id === id);
+          return m ? m.label : id;
+        }).join(' · '),
+        items: CONCEPTS,
+        field: 'concepts',
+        multi: true,
+        glyphFor: c => conceptGlyph(c.id),
+        valueFor: c => c.id,
       }));
-      c.appendChild(buildFormSection('Personal note', s => {
-        const ta = buildNoteTextarea('note', 'A line or two about why this caught your eye…');
-        ta.rows = 3;
-        s.appendChild(ta);
-      }));
+      c.appendChild(buildAuthorYearSection());
+      c.appendChild(buildPersonalNoteSection());
       c.appendChild(buildSaveBar());
     }
 
