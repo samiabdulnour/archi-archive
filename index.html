@@ -984,6 +984,54 @@
     }
     #delete-btn:active { background: var(--bg-elev-2); }
 
+    /* Settings sub-page rows */
+    .settings-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      padding: 0.7rem 0;
+      background: transparent;
+      border: 0;
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+      font-size: 1rem;
+      font-weight: 500;
+      letter-spacing: -0.005em;
+      text-align: left;
+    }
+    .settings-row:last-child { border-bottom: 0; }
+    .settings-row:active { opacity: 0.6; }
+    .settings-row-caret {
+      color: var(--text-muted);
+      font-size: 1.2rem;
+      line-height: 1;
+    }
+
+    .settings-help {
+      margin: 0 0 0.6rem;
+      color: var(--text-muted);
+      font-size: 0.82rem;
+      letter-spacing: -0.005em;
+      line-height: 1.35;
+    }
+
+    .settings-flow label {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      padding: 0.55rem 0;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+    }
+    .settings-flow label:last-child { border-bottom: 0; }
+    .settings-flow label input { margin: 0; transform: scale(1.1); }
+    .settings-flow label span {
+      flex: 1;
+      font-size: 0.95rem;
+      letter-spacing: -0.005em;
+    }
+
     /* Toast */
     #toast {
       position: fixed;
@@ -1063,10 +1111,11 @@
 
 
   <!-- ============ SETTINGS ============ -->
+  <!-- Settings · main -->
   <section id="view-settings" class="view">
     <header class="gallery-header">
       <button class="back-btn" data-goto="home">&larr;</button>
-      <span class="meta-date">Options</span>
+      <span class="meta-date">Settings</span>
     </header>
     <div style="padding: 0 1rem; display:flex; flex-direction:column; gap:1rem;">
 
@@ -1076,9 +1125,16 @@
       </div>
 
       <div class="section">
-        <p class="section-title">Building flow steps</p>
-        <p style="margin:0 0 0.5rem; color:#888; font-size:0.78rem;">Which questions to ask after picking Building.</p>
-        <div id="settings-steps-list"></div>
+        <p class="section-title">Capture flow steps</p>
+        <button class="settings-row" data-goto="settings-building">
+          <span>Building</span><span class="settings-row-caret">&rsaquo;</span>
+        </button>
+        <button class="settings-row" data-goto="settings-element">
+          <span>Element</span><span class="settings-row-caret">&rsaquo;</span>
+        </button>
+        <button class="settings-row" data-goto="settings-graphic">
+          <span>Graphic</span><span class="settings-row-caret">&rsaquo;</span>
+        </button>
       </div>
 
       <div class="section">
@@ -1086,6 +1142,51 @@
         <div id="settings-custom-materiality"></div>
       </div>
 
+    </div>
+  </section>
+
+  <!-- Settings · Building flow -->
+  <section id="view-settings-building" class="view">
+    <header class="gallery-header">
+      <button class="back-btn" data-goto="settings">&larr;</button>
+      <span class="meta-date">Building flow</span>
+    </header>
+    <div style="padding: 0 1rem; display:flex; flex-direction:column; gap:1rem;">
+      <div class="section">
+        <p class="section-title">Steps</p>
+        <p class="settings-help">Which sections appear after a Reference&nbsp;→&nbsp;Building photo.</p>
+        <div id="settings-flow-building" class="settings-flow"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Settings · Element flow -->
+  <section id="view-settings-element" class="view">
+    <header class="gallery-header">
+      <button class="back-btn" data-goto="settings">&larr;</button>
+      <span class="meta-date">Element flow</span>
+    </header>
+    <div style="padding: 0 1rem; display:flex; flex-direction:column; gap:1rem;">
+      <div class="section">
+        <p class="section-title">Steps</p>
+        <p class="settings-help">Which sections appear after a Reference&nbsp;→&nbsp;Element photo.</p>
+        <div id="settings-flow-element" class="settings-flow"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Settings · Graphic flow -->
+  <section id="view-settings-graphic" class="view">
+    <header class="gallery-header">
+      <button class="back-btn" data-goto="settings">&larr;</button>
+      <span class="meta-date">Graphic flow</span>
+    </header>
+    <div style="padding: 0 1rem; display:flex; flex-direction:column; gap:1rem;">
+      <div class="section">
+        <p class="section-title">Steps</p>
+        <p class="settings-help">Which sections appear after a Reference&nbsp;→&nbsp;Graphic photo.</p>
+        <div id="settings-flow-graphic" class="settings-flow"></div>
+      </div>
     </div>
   </section>
 
@@ -1113,7 +1214,7 @@
           <button class="cam-lite-btn" data-lite="1" aria-label="Lite — save now, tag later">L</button>
           <button class="cam-lite-btn active" data-lite="0" aria-label="Full — tag now">F</button>
         </div>
-        <button class="cam-pill cam-icon" id="cam-options" aria-label="Options">&#8943;</button>
+        <button class="cam-pill cam-icon" id="cam-options" aria-label="Settings">&#8943;</button>
       </div>
     </div>
 
@@ -1317,18 +1418,45 @@
       s.custom[category] = items;
       saveSettings(s);
     }
-    function getStepEnabled(section) {
-      // default true
-      return (loadSettings().buildingSteps || {})[section] !== false;
-    }
-    function setStepEnabled(section, enabled) {
+    // User-created project names that may not yet have any photos.
+    // Per-flow step toggles. Each flow has an ordered list; sections render
+    // in that order, and any step the user disables in Settings is skipped
+    // when the form renders.
+    const FLOW_STEPS = {
+      building: [
+        { id: 'typology',    label: 'Typology' },
+        { id: 'concept',     label: 'Concept' },
+        { id: 'materiality', label: 'Materiality' },
+        { id: 'author_year', label: 'Author & year' },
+        { id: 'note',        label: 'Personal note' },
+      ],
+      element: [
+        { id: 'element',     label: 'Element' },
+        { id: 'materiality', label: 'Materiality' },
+        { id: 'author_year', label: 'Author & year' },
+        { id: 'note',        label: 'Personal note' },
+      ],
+      graphic: [
+        { id: 'kind',        label: 'Kind' },
+        { id: 'details',     label: 'Kind details' },
+        { id: 'note',        label: 'Personal note' },
+      ],
+    };
+    const FLOW_LABELS = { building: 'Building', element: 'Element', graphic: 'Graphic' };
+
+    function getFlowStepEnabled(flow, step) {
+      // Default: enabled. Disable explicitly via Settings.
       const s = loadSettings();
-      s.buildingSteps = s.buildingSteps || {};
-      s.buildingSteps[section] = enabled;
+      return ((s.flowSteps || {})[flow] || {})[step] !== false;
+    }
+    function setFlowStepEnabled(flow, step, enabled) {
+      const s = loadSettings();
+      s.flowSteps = s.flowSteps || {};
+      s.flowSteps[flow] = s.flowSteps[flow] || {};
+      s.flowSteps[flow][step] = enabled;
       saveSettings(s);
     }
 
-    // User-created project names that may not yet have any photos.
     function getStoredProjects() {
       return loadSettings().projects || [];
     }
@@ -1359,37 +1487,6 @@
       return [...MATERIALS, ...getCustom('materiality')];
     }
 
-    // Building flow steps in order, each tied to a settings section key.
-    const BUILDING_STEP_ORDER = [
-      { step: 'primary-building',              section: 'typology' },
-      { step: 'primary-building-concepts',     section: 'concept' },
-      { step: 'primary-building-materiality',  section: 'materiality' },
-      { step: 'primary-building-meta',         section: 'architect_year' },
-      { step: 'primary-building-note',         section: 'note' },
-    ];
-    const BUILDING_STEP_LABELS = {
-      typology:       'Typology',
-      concept:        'Concepts',
-      materiality:    'Materiality',
-      architect_year: 'Architect & year',
-      note:           'Personal note',
-    };
-
-    function nextEnabledBuildingStep(currentStep) {
-      const idx = BUILDING_STEP_ORDER.findIndex(s => s.step === currentStep);
-      for (let i = idx + 1; i < BUILDING_STEP_ORDER.length; i++) {
-        if (getStepEnabled(BUILDING_STEP_ORDER[i].section)) return BUILDING_STEP_ORDER[i].step;
-      }
-      return null;
-    }
-
-    // After picking Building at the type step, jump directly to the first enabled section.
-    function firstEnabledBuildingStep() {
-      for (const s of BUILDING_STEP_ORDER) {
-        if (getStepEnabled(s.section)) return s.step;
-      }
-      return null;
-    }
 
     // ============================================================
     // INDEXEDDB
@@ -2002,8 +2099,10 @@
     startLocationCapture();
 
     async function renderSettings() {
-      renderSettingsSteps();
       renderSettingsCustom('materiality', 'settings-custom-materiality');
+      renderFlowSteps('building');
+      renderFlowSteps('element');
+      renderFlowSteps('graphic');
 
       const list = document.getElementById('settings-projects-list');
       list.innerHTML = '';
@@ -2088,30 +2187,22 @@
       list.appendChild(addRow);
     }
 
-    function renderSettingsSteps() {
-      const root = document.getElementById('settings-steps-list');
+    // Per-flow step toggles. Renders into the flow-specific sub-page
+    // (id="settings-flow-building" / "settings-flow-element" / "settings-flow-graphic").
+    function renderFlowSteps(flow) {
+      const root = document.getElementById('settings-flow-' + flow);
+      if (!root) return;
       root.innerHTML = '';
-      BUILDING_STEP_ORDER.forEach(({ section }) => {
+      FLOW_STEPS[flow].forEach(({ id, label }) => {
         const row = document.createElement('label');
-        row.style.display = 'flex';
-        row.style.alignItems = 'center';
-        row.style.gap = '0.5rem';
-        row.style.padding = '0.5rem 0';
-        row.style.borderBottom = '1px solid #222';
-        row.style.cursor = 'pointer';
-
         const cb = document.createElement('input');
         cb.type = 'checkbox';
-        cb.checked = getStepEnabled(section);
-        cb.addEventListener('change', () => setStepEnabled(section, cb.checked));
-
-        const label = document.createElement('span');
-        label.textContent = BUILDING_STEP_LABELS[section];
-        label.style.flex = '1';
-        label.style.fontSize = '0.95rem';
-
+        cb.checked = getFlowStepEnabled(flow, id);
+        cb.addEventListener('change', () => setFlowStepEnabled(flow, id, cb.checked));
+        const lbl = document.createElement('span');
+        lbl.textContent = label;
         row.appendChild(cb);
-        row.appendChild(label);
+        row.appendChild(lbl);
         root.appendChild(row);
       });
     }
@@ -2589,33 +2680,48 @@
     // ============================================================
     // Building form (single page, all sections)
     // ============================================================
-    // Per the design system: Building → Typology + Concept + Author·Year.
-    // Eight tiles per section, fixed 2×4 grid, glyph + label per tile.
+    // Building flow: Typology + Concept + Materiality + Author·Year + Personal note.
+    // Each section can be turned on/off in Settings → Building flow.
     function renderBuildingForm(c) {
       if (!captureDraft.concepts) captureDraft.concepts = [];
+      if (!captureDraft.materials) captureDraft.materials = [];
 
-      c.appendChild(buildSwatchSection({
-        label: 'Typology',
-        getSummary: () => captureDraft.typology || '',
-        items: TYPOLOGY,
-        field: 'typology',
-        multi: false,
-        glyphFor: typologyGlyph,
-      }));
-      c.appendChild(buildSwatchSection({
-        label: 'Concept',
-        getSummary: () => (captureDraft.concepts || []).map(id => {
-          const m = CONCEPTS.find(c => c.id === id);
-          return m ? m.label : id;
-        }).join(' · '),
-        items: CONCEPTS,
-        field: 'concepts',
-        multi: true,
-        glyphFor: c => conceptGlyph(c.id),
-        valueFor: c => c.id,
-      }));
-      c.appendChild(buildAuthorYearSection());
-      c.appendChild(buildPersonalNoteSection());
+      if (getFlowStepEnabled('building', 'typology')) {
+        c.appendChild(buildSwatchSection({
+          label: 'Typology',
+          getSummary: () => captureDraft.typology || '',
+          items: TYPOLOGY,
+          field: 'typology',
+          multi: false,
+          glyphFor: typologyGlyph,
+        }));
+      }
+      if (getFlowStepEnabled('building', 'concept')) {
+        c.appendChild(buildSwatchSection({
+          label: 'Concept',
+          getSummary: () => (captureDraft.concepts || []).map(id => {
+            const m = CONCEPTS.find(c => c.id === id);
+            return m ? m.label : id;
+          }).join(' · '),
+          items: CONCEPTS,
+          field: 'concepts',
+          multi: true,
+          glyphFor: c => conceptGlyph(c.id),
+          valueFor: c => c.id,
+        }));
+      }
+      if (getFlowStepEnabled('building', 'materiality')) {
+        c.appendChild(buildSwatchSection({
+          label: 'Materiality',
+          getSummary: () => (captureDraft.materials || []).join(' · '),
+          items: MATERIALS,
+          field: 'materials',
+          multi: true,
+          glyphFor: materialPatternSvg,
+        }));
+      }
+      if (getFlowStepEnabled('building', 'author_year')) c.appendChild(buildAuthorYearSection());
+      if (getFlowStepEnabled('building', 'note'))         c.appendChild(buildPersonalNoteSection());
       c.appendChild(buildSaveBar());
     }
 
@@ -2710,24 +2816,28 @@
     function renderElementForm(c) {
       if (!captureDraft.materials) captureDraft.materials = [];
 
-      c.appendChild(buildSwatchSection({
-        label: 'Element',
-        getSummary: () => captureDraft.element_name || '',
-        items: ELEMENTS_TOP_12,
-        field: 'element_name',
-        multi: false,
-        glyphFor: elementGlyph,
-      }));
-      c.appendChild(buildSwatchSection({
-        label: 'Materiality',
-        getSummary: () => (captureDraft.materials || []).join(' · '),
-        items: MATERIALS.slice(0, 8),
-        field: 'materials',
-        multi: true,
-        glyphFor: materialPatternSvg,
-      }));
-      c.appendChild(buildAuthorYearSection());
-      c.appendChild(buildPersonalNoteSection());
+      if (getFlowStepEnabled('element', 'element')) {
+        c.appendChild(buildSwatchSection({
+          label: 'Element',
+          getSummary: () => captureDraft.element_name || '',
+          items: ELEMENTS_TOP_12,
+          field: 'element_name',
+          multi: false,
+          glyphFor: elementGlyph,
+        }));
+      }
+      if (getFlowStepEnabled('element', 'materiality')) {
+        c.appendChild(buildSwatchSection({
+          label: 'Materiality',
+          getSummary: () => (captureDraft.materials || []).join(' · '),
+          items: MATERIALS,
+          field: 'materials',
+          multi: true,
+          glyphFor: materialPatternSvg,
+        }));
+      }
+      if (getFlowStepEnabled('element', 'author_year')) c.appendChild(buildAuthorYearSection());
+      if (getFlowStepEnabled('element', 'note'))         c.appendChild(buildPersonalNoteSection());
       c.appendChild(buildSaveBar());
     }
 
@@ -2762,31 +2872,33 @@
     };
 
     function renderGraphicForm(c) {
-      // Kind swatch tiles (with glyphs)
-      c.appendChild(buildSwatchSection({
-        label: 'Kind',
-        getSummary: () => {
-          const m = GRAPHIC_KINDS.find(k => k.id === captureDraft.graphic_kind);
-          return m ? m.label : '';
-        },
-        items: GRAPHIC_KINDS,
-        field: 'graphic_kind',
-        multi: false,
-        glyphFor: k => graphicKindGlyph(k.id),
-        valueFor: k => k.id,
-        onChange: () => renderCaptureStep(),  // re-render so the kind details refresh
-      }));
-
-      // Kind-specific details (when a kind is chosen, except 'other').
-      const kind = captureDraft.graphic_kind;
-      const fields = GRAPHIC_FIELDS[kind];
-      if (fields) {
-        c.appendChild(buildFormSection('Details', s => {
-          fields.forEach(f => s.appendChild(buildTextInputField(f.field, f.label)));
+      // Kind swatch tiles (always shown; the graphic flow needs at least a kind).
+      if (getFlowStepEnabled('graphic', 'kind')) {
+        c.appendChild(buildSwatchSection({
+          label: 'Kind',
+          getSummary: () => {
+            const m = GRAPHIC_KINDS.find(k => k.id === captureDraft.graphic_kind);
+            return m ? m.label : '';
+          },
+          items: GRAPHIC_KINDS,
+          field: 'graphic_kind',
+          multi: false,
+          glyphFor: k => graphicKindGlyph(k.id),
+          valueFor: k => k.id,
+          onChange: () => renderCaptureStep(),  // re-render so the kind details refresh
         }));
       }
-
-      c.appendChild(buildPersonalNoteSection());
+      // Kind-specific details (when a kind is chosen, except 'other').
+      if (getFlowStepEnabled('graphic', 'details')) {
+        const kind = captureDraft.graphic_kind;
+        const fields = GRAPHIC_FIELDS[kind];
+        if (fields) {
+          c.appendChild(buildFormSection('Details', s => {
+            fields.forEach(f => s.appendChild(buildTextInputField(f.field, f.label)));
+          }));
+        }
+      }
+      if (getFlowStepEnabled('graphic', 'note')) c.appendChild(buildPersonalNoteSection());
       c.appendChild(buildSaveBar());
     }
 
