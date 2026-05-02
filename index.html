@@ -1197,13 +1197,13 @@
       { id: 'graphic',  label: 'Graphic',  hint: 'Flat: artwork, book, drawing, product, contact...' },
     ];
 
+    // Seven broad typologies. Successive consolidations:
+    //   Cultural / Educational / Religious / Civic / Healthcare / Sports → Public
+    //   Office / Commercial / Hospitality → Commercial
+    //   Heritage/Ruin → Heritage
     const TYPOLOGY = [
-      'Residential', 'Office', 'Cultural', 'Educational',
-      'Religious', 'Civic', 'Commercial', 'Hospitality',
-      'Industrial', 'Heritage/Ruin',
-      // Newly added — closes a few common gaps in the architect's archive.
-      'Healthcare', 'Sports', 'Landscape',
-      'Other',
+      'Residential', 'Public', 'Commercial', 'Industrial',
+      'Heritage', 'Landscape', 'Other',
     ];
 
     const CONCEPTS = [
@@ -1229,8 +1229,8 @@
     };
 
     const MATERIALS = [
-      'Concrete', 'Brick/Masonry', 'Stone', 'Timber', 'Steel', 'Other Metals',
-      'Glass', 'Earth/Rammed', 'Ceramic/Tile', 'Plaster/Render', 'Textile/Soft'
+      'Concrete', 'Stone', 'Brick & Tile', 'Timber',
+      'Metal', 'Glass', 'Plaster', 'Other',
     ];
 
     const GRAPHIC_KINDS = [
@@ -2294,18 +2294,15 @@
     // Ported from the design files. fill="currentColor" so they invert on active tiles.
     // ============================================================
     const TYPOLOGY_GLYPHS = {
+      // House silhouette
       Residential:  '<path d="M6 20 L20 6 L34 20 V34 H6 Z" fill="currentColor"/>',
-      Office:       '<g fill="currentColor"><rect x="8" y="8" width="24" height="26"/><g fill="#F2EEE6"><rect x="11" y="12" width="4" height="4"/><rect x="18" y="12" width="4" height="4"/><rect x="25" y="12" width="4" height="4"/><rect x="11" y="19" width="4" height="4"/><rect x="18" y="19" width="4" height="4"/><rect x="25" y="19" width="4" height="4"/><rect x="11" y="26" width="4" height="4"/><rect x="25" y="26" width="4" height="4"/></g></g>',
-      Cultural:     '<g fill="currentColor"><polygon points="20,6 36,16 4,16"/><rect x="6" y="16" width="3" height="14"/><rect x="13" y="16" width="3" height="14"/><rect x="24" y="16" width="3" height="14"/><rect x="31" y="16" width="3" height="14"/><rect x="4" y="30" width="32" height="3"/></g>',
-      Educational:  '<g fill="currentColor"><rect x="6" y="14" width="28" height="20"/><polygon points="6,14 20,6 34,14"/><rect x="17" y="22" width="6" height="12" fill="#F2EEE6"/></g>',
-      Religious:    '<g fill="currentColor"><rect x="6" y="20" width="28" height="14"/><path d="M6 20 Q20 6 34 20 Z"/><rect x="18" y="10" width="4" height="10"/><rect x="14" y="14" width="12" height="3"/></g>',
-      Civic:        '<g fill="currentColor"><rect x="6" y="14" width="28" height="20"/><polygon points="6,14 20,6 34,14"/><circle cx="20" cy="22" r="3" fill="#F2EEE6"/></g>',
+      // Pediment + columns + base — the classical civic icon, covers the merged
+      // Cultural / Educational / Religious / Civic / Healthcare / Sports.
+      Public:       '<g fill="currentColor"><polygon points="20,6 36,16 4,16"/><rect x="6" y="16" width="3" height="14"/><rect x="13" y="16" width="3" height="14"/><rect x="24" y="16" width="3" height="14"/><rect x="31" y="16" width="3" height="14"/><rect x="4" y="30" width="32" height="3"/></g>',
+      // Storefront — covers former Office + Commercial.
       Commercial:   '<g fill="currentColor"><rect x="8" y="10" width="24" height="24"/><rect x="11" y="14" width="6" height="6" fill="#F2EEE6"/><rect x="23" y="14" width="6" height="6" fill="#F2EEE6"/><rect x="11" y="24" width="18" height="2" fill="#F2EEE6"/></g>',
-      Hospitality:  '<g fill="currentColor"><rect x="6" y="12" width="28" height="22"/><rect x="10" y="16" width="3" height="3" fill="#F2EEE6"/><rect x="16" y="16" width="3" height="3" fill="#F2EEE6"/><rect x="22" y="16" width="3" height="3" fill="#F2EEE6"/><rect x="28" y="16" width="3" height="3" fill="#F2EEE6"/><rect x="10" y="22" width="3" height="3" fill="#F2EEE6"/><rect x="16" y="22" width="3" height="3" fill="#F2EEE6"/><rect x="22" y="22" width="3" height="3" fill="#F2EEE6"/><rect x="28" y="22" width="3" height="3" fill="#F2EEE6"/></g>',
       Industrial:   '<g fill="currentColor"><polygon points="4,34 4,18 12,22 12,14 20,18 20,14 28,18 28,14 36,18 36,34"/></g>',
-      'Heritage/Ruin': '<g fill="currentColor"><rect x="6" y="14" width="28" height="20"/><polygon points="6,14 20,4 34,14"/><rect x="14" y="20" width="4" height="14" fill="#F2EEE6"/><rect x="22" y="20" width="4" height="14" fill="#F2EEE6"/><circle cx="20" cy="11" r="1.5" fill="#F2EEE6"/></g>',
-      Healthcare:   '<g fill="currentColor"><rect x="6" y="6" width="28" height="28"/></g><g fill="#F2EEE6"><rect x="17" y="11" width="6" height="18"/><rect x="11" y="17" width="18" height="6"/></g>',
-      Sports:       '<g fill="currentColor"><circle cx="20" cy="20" r="14"/></g><g stroke="#F2EEE6" stroke-width="1.4" fill="none"><circle cx="20" cy="20" r="6"/><line x1="20" y1="6" x2="20" y2="14"/><line x1="20" y1="26" x2="20" y2="34"/><line x1="6" y1="20" x2="14" y2="20"/><line x1="26" y1="20" x2="34" y2="20"/></g>',
+      Heritage:     '<g fill="currentColor"><rect x="6" y="14" width="28" height="20"/><polygon points="6,14 20,4 34,14"/><rect x="14" y="20" width="4" height="14" fill="#F2EEE6"/><rect x="22" y="20" width="4" height="14" fill="#F2EEE6"/><circle cx="20" cy="11" r="1.5" fill="#F2EEE6"/></g>',
       Landscape:    '<g fill="currentColor"><path d="M4 32 Q12 22 20 26 Q28 30 36 22 V34 H4 Z"/><circle cx="12" cy="14" r="4"/><path d="M27 12 V20" stroke="currentColor" stroke-width="2"/><path d="M22 16 L27 12 L32 16" stroke="currentColor" stroke-width="2" fill="none"/></g>',
       Other:        '<g fill="currentColor"><circle cx="20" cy="20" r="14"/><text x="20" y="26" text-anchor="middle" fill="#F2EEE6" font-size="16" font-family="Inter" font-weight="600">?</text></g>',
     };
@@ -2350,26 +2347,50 @@
       Dome:     '<g fill="currentColor"><path d="M6 30 Q6 6 20 6 Q34 6 34 30 Z"/><rect x="6" y="30" width="28" height="3" fill="#F2EEE6"/></g>',
       Truss:    '<g stroke="currentColor" stroke-width="1.6" fill="none"><line x1="4" y1="32" x2="36" y2="32"/><line x1="4" y1="32" x2="20" y2="8"/><line x1="36" y1="32" x2="20" y2="8"/><line x1="14" y1="32" x2="20" y2="8"/><line x1="26" y1="32" x2="20" y2="8"/></g>',
       Corridor: '<g fill="currentColor"><rect x="4" y="14" width="32" height="3"/><rect x="4" y="23" width="32" height="3"/></g>',
+      Other:    '<g fill="currentColor"><circle cx="20" cy="20" r="14"/><text x="20" y="26" text-anchor="middle" fill="#F2EEE6" font-size="16" font-family="Inter" font-weight="600">?</text></g>',
     };
     function elementGlyph(name) {
       return `<svg width="40" height="40" viewBox="0 0 40 40">${ELEMENT_GLYPHS[name] || ''}</svg>`;
     }
 
-    // Material hatch patterns — each tile is a 70×70 fill with a unique hatch.
+    // Type glyphs (Building / Detail / Graphic) — for the detail-view Type picker.
+    const TYPE_GLYPHS = {
+      building: '<g fill="currentColor"><rect x="8" y="6" width="24" height="28"/></g><g fill="#F2EEE6"><rect x="11" y="10" width="4" height="4"/><rect x="18" y="10" width="4" height="4"/><rect x="25" y="10" width="4" height="4"/><rect x="11" y="17" width="4" height="4"/><rect x="18" y="17" width="4" height="4"/><rect x="25" y="17" width="4" height="4"/><rect x="11" y="24" width="4" height="4"/><rect x="25" y="24" width="4" height="4"/></g>',
+      element:  '<g fill="currentColor"><rect x="14" y="6" width="12" height="3"/><rect x="14" y="31" width="12" height="3"/><rect x="17" y="9" width="6" height="22"/></g>',
+      graphic:  '<g fill="currentColor"><rect x="8" y="6" width="24" height="28"/></g><g stroke="#F2EEE6" stroke-width="1.5"><line x1="12" y1="12" x2="28" y2="12"/><line x1="12" y1="16" x2="28" y2="16"/><line x1="12" y1="20" x2="28" y2="20"/><line x1="12" y1="24" x2="22" y2="24"/></g>',
+    };
+    function typeGlyph(id) {
+      return `<svg width="40" height="40" viewBox="0 0 40 40">${TYPE_GLYPHS[id] || ''}</svg>`;
+    }
+
+    // Graphic kind glyphs (Artwork / Book / Drawing / Product / Contact / Other)
+    const GRAPHIC_KIND_GLYPHS = {
+      artwork:  '<g fill="currentColor"><rect x="6" y="8" width="28" height="22"/></g><g fill="#F2EEE6"><rect x="9" y="11" width="22" height="16"/></g><g fill="currentColor"><circle cx="14" cy="16" r="1.6"/><path d="M9 27 L16 19 L21 24 L26 17 L31 27 Z"/></g>',
+      book:     '<g fill="currentColor"><path d="M7 8 H19 V32 H7 Q5 32 5 30 V10 Q5 8 7 8 Z"/><path d="M21 8 H33 Q35 8 35 10 V30 Q35 32 33 32 H21 Z"/></g><g stroke="#F2EEE6" stroke-width="0.8" stroke-linecap="round"><line x1="9" y1="13" x2="17" y2="13"/><line x1="9" y1="16" x2="17" y2="16"/><line x1="9" y1="19" x2="15" y2="19"/><line x1="23" y1="13" x2="31" y2="13"/><line x1="23" y1="16" x2="31" y2="16"/><line x1="23" y1="19" x2="29" y2="19"/></g>',
+      drawing:  '<g fill="currentColor"><rect x="5" y="6" width="22" height="26"/></g><g stroke="#F2EEE6" stroke-width="1" fill="none"><line x1="8" y1="12" x2="22" y2="12"/><line x1="8" y1="18" x2="22" y2="18"/><line x1="8" y1="24" x2="18" y2="24"/></g><g fill="currentColor" transform="rotate(20 30 22)"><rect x="28" y="6" width="3" height="22"/><polygon points="28,28 31,28 29.5,33"/></g>',
+      product:  '<g fill="currentColor"><polygon points="6,12 20,4 34,12 34,30 20,38 6,30"/></g><g stroke="#F2EEE6" stroke-width="1.2" fill="none"><polyline points="6,12 20,20 34,12"/><line x1="20" y1="20" x2="20" y2="38"/></g>',
+      contact:  '<g fill="currentColor"><rect x="4" y="10" width="32" height="20"/></g><g fill="#F2EEE6"><circle cx="12" cy="18" r="3"/><path d="M6 26 Q6 22 12 22 Q18 22 18 26 V28 H6 Z"/><line x1="22" y1="16" x2="33" y2="16" stroke="#F2EEE6" stroke-width="1.4"/><line x1="22" y1="20" x2="33" y2="20" stroke="#F2EEE6" stroke-width="1.4"/><line x1="22" y1="24" x2="29" y2="24" stroke="#F2EEE6" stroke-width="1.4"/></g>',
+      other:    '<g fill="currentColor"><circle cx="20" cy="20" r="14"/><text x="20" y="26" text-anchor="middle" fill="#F2EEE6" font-size="16" font-family="Inter" font-weight="600">?</text></g>',
+    };
+    function graphicKindGlyph(id) {
+      return `<svg width="40" height="40" viewBox="0 0 40 40">${GRAPHIC_KIND_GLYPHS[id] || ''}</svg>`;
+    }
+
+    // Material hatch patterns — each tile is a 56×56 fill with a unique hatch.
     function materialPatternSvg(name) {
       const id = 'mat-' + name.toLowerCase().replace(/[^a-z0-9]/g, '');
       const map = {
         Concrete: `<pattern id="${id}" width="6" height="6" patternUnits="userSpaceOnUse"><circle cx="1.5" cy="1.5" r="0.6" fill="currentColor"/><circle cx="4.5" cy="3.5" r="0.5" fill="currentColor"/><circle cx="2.2" cy="4.8" r="0.4" fill="currentColor"/></pattern>`,
-        'Brick/Masonry': `<pattern id="${id}" width="14" height="8" patternUnits="userSpaceOnUse"><rect x="0" y="0" width="13" height="3" fill="none" stroke="currentColor" stroke-width="0.7"/><rect x="-7" y="4" width="13" height="3" fill="none" stroke="currentColor" stroke-width="0.7"/><rect x="7" y="4" width="13" height="3" fill="none" stroke="currentColor" stroke-width="0.7"/></pattern>`,
         Stone: `<pattern id="${id}" width="16" height="16" patternUnits="userSpaceOnUse"><path d="M0 5 L6 3 L12 6 L16 5" stroke="currentColor" stroke-width="0.6" fill="none"/><path d="M0 11 L4 9 L9 12 L16 11" stroke="currentColor" stroke-width="0.6" fill="none"/><path d="M3 0 V4 M9 4 V9 M5 9 V16" stroke="currentColor" stroke-width="0.5"/></pattern>`,
+        // Brick & Tile = brick + ceramic + earth-based fired-clay surfaces.
+        'Brick & Tile': `<pattern id="${id}" width="14" height="8" patternUnits="userSpaceOnUse"><rect x="0" y="0" width="13" height="3" fill="none" stroke="currentColor" stroke-width="0.7"/><rect x="-7" y="4" width="13" height="3" fill="none" stroke="currentColor" stroke-width="0.7"/><rect x="7" y="4" width="13" height="3" fill="none" stroke="currentColor" stroke-width="0.7"/></pattern>`,
         Timber: `<pattern id="${id}" width="20" height="6" patternUnits="userSpaceOnUse"><path d="M0 2 Q5 1 10 2 T20 2" stroke="currentColor" stroke-width="0.6" fill="none"/><path d="M0 4 Q5 5 10 4 T20 4" stroke="currentColor" stroke-width="0.5" fill="none"/></pattern>`,
-        Steel: `<pattern id="${id}" width="6" height="6" patternUnits="userSpaceOnUse"><line x1="0" y1="0" x2="6" y2="6" stroke="currentColor" stroke-width="0.6"/></pattern>`,
-        'Other Metals': `<pattern id="${id}" width="6" height="6" patternUnits="userSpaceOnUse"><line x1="0" y1="0" x2="6" y2="6" stroke="currentColor" stroke-width="0.6"/><line x1="6" y1="0" x2="0" y2="6" stroke="currentColor" stroke-width="0.6"/></pattern>`,
+        // Metal = steel + other metals (aluminium, copper, bronze).
+        Metal: `<pattern id="${id}" width="6" height="6" patternUnits="userSpaceOnUse"><line x1="0" y1="0" x2="6" y2="6" stroke="currentColor" stroke-width="0.6"/><line x1="6" y1="0" x2="0" y2="6" stroke="currentColor" stroke-width="0.6"/></pattern>`,
         Glass: `<pattern id="${id}" width="10" height="10" patternUnits="userSpaceOnUse"><line x1="0" y1="2" x2="10" y2="2" stroke="currentColor" stroke-width="0.4" opacity="0.5"/><line x1="0" y1="6" x2="10" y2="6" stroke="currentColor" stroke-width="0.4" opacity="0.5"/></pattern>`,
-        'Earth/Rammed': `<pattern id="${id}" width="8" height="8" patternUnits="userSpaceOnUse"><path d="M0 4 Q2 2 4 4 T8 4" stroke="currentColor" stroke-width="0.5" fill="none"/></pattern>`,
-        'Ceramic/Tile': `<pattern id="${id}" width="8" height="8" patternUnits="userSpaceOnUse"><rect width="8" height="8" fill="none" stroke="currentColor" stroke-width="0.5"/></pattern>`,
-        'Plaster/Render': `<pattern id="${id}" width="14" height="14" patternUnits="userSpaceOnUse"><circle cx="3" cy="3" r="0.4" fill="currentColor" opacity="0.6"/><circle cx="9" cy="6" r="0.3" fill="currentColor" opacity="0.6"/><circle cx="5" cy="10" r="0.3" fill="currentColor" opacity="0.6"/><circle cx="11" cy="11" r="0.4" fill="currentColor" opacity="0.6"/></pattern>`,
-        'Textile/Soft': `<pattern id="${id}" width="6" height="6" patternUnits="userSpaceOnUse"><line x1="0" y1="0" x2="6" y2="0" stroke="currentColor" stroke-width="0.4"/><line x1="0" y1="3" x2="6" y2="3" stroke="currentColor" stroke-width="0.4"/><line x1="0" y1="0" x2="0" y2="6" stroke="currentColor" stroke-width="0.4"/><line x1="3" y1="0" x2="3" y2="6" stroke="currentColor" stroke-width="0.4"/></pattern>`,
+        Plaster: `<pattern id="${id}" width="14" height="14" patternUnits="userSpaceOnUse"><circle cx="3" cy="3" r="0.4" fill="currentColor" opacity="0.6"/><circle cx="9" cy="6" r="0.3" fill="currentColor" opacity="0.6"/><circle cx="5" cy="10" r="0.3" fill="currentColor" opacity="0.6"/><circle cx="11" cy="11" r="0.4" fill="currentColor" opacity="0.6"/></pattern>`,
+        // Other = catch-all (rammed earth, textile, soft surfaces, edge cases).
+        Other: `<pattern id="${id}" width="40" height="40" patternUnits="userSpaceOnUse"><text x="20" y="26" text-anchor="middle" fill="currentColor" font-size="20" font-family="Inter" font-weight="600">?</text></pattern>`,
       };
       const def = map[name] || `<pattern id="${id}" width="4" height="4" patternUnits="userSpaceOnUse"><rect width="4" height="4" fill="none"/></pattern>`;
       return `<svg width="56" height="56" viewBox="0 0 56 56" preserveAspectRatio="none"><defs>${def}</defs><rect width="56" height="56" fill="url(#${id})"/></svg>`;
@@ -2663,7 +2684,15 @@
     // ============================================================
     // First eight elements as a flat 2×4 grid (drops the four sub-group headers
     // — the design favours visual scan over taxonomy).
-    const ELEMENTS_TOP_8 = ['Column', 'Wall', 'Arch', 'Door', 'Window', 'Stair', 'Ramp', 'Roof'];
+    // Twelve elements in a 3×4 grid. The "Other" tile catches anything in the
+    // longer 22-item ELEMENT_GLYPHS list that the user wants to record but
+    // doesn't fit the staples (Beam, Vault, Dome, Truss, Threshold, Balcony,
+    // Ceiling, Floor, Cornice, Corridor live there).
+    const ELEMENTS_TOP_12 = [
+      'Column', 'Wall', 'Arch', 'Door',
+      'Window', 'Stair', 'Ramp', 'Roof',
+      'Facade', 'Railing', 'Joint', 'Other',
+    ];
 
     function renderElementForm(c) {
       if (!captureDraft.materials) captureDraft.materials = [];
@@ -2671,7 +2700,7 @@
       c.appendChild(buildSwatchSection({
         label: 'Element',
         getSummary: () => captureDraft.element_name || '',
-        items: ELEMENTS_TOP_8,
+        items: ELEMENTS_TOP_12,
         field: 'element_name',
         multi: false,
         glyphFor: elementGlyph,
@@ -2720,25 +2749,20 @@
     };
 
     function renderGraphicForm(c) {
-      // Kind chips
-      const kindSection = buildFormSection('Kind', s => {
-        const row = document.createElement('div');
-        row.className = 'chip-row';
-        GRAPHIC_KINDS.forEach(k => {
-          const chip = document.createElement('button');
-          chip.className = 'chip';
-          chip.textContent = k.label;
-          if (captureDraft.graphic_kind === k.id) chip.classList.add('active');
-          chip.addEventListener('click', () => {
-            captureDraft.graphic_kind = (captureDraft.graphic_kind === k.id) ? null : k.id;
-            // Re-render so the kind-specific details section updates.
-            renderCaptureStep();
-          });
-          row.appendChild(chip);
-        });
-        s.appendChild(row);
-      });
-      c.appendChild(kindSection);
+      // Kind swatch tiles (with glyphs)
+      c.appendChild(buildSwatchSection({
+        label: 'Kind',
+        getSummary: () => {
+          const m = GRAPHIC_KINDS.find(k => k.id === captureDraft.graphic_kind);
+          return m ? m.label : '';
+        },
+        items: GRAPHIC_KINDS,
+        field: 'graphic_kind',
+        multi: false,
+        glyphFor: k => graphicKindGlyph(k.id),
+        valueFor: k => k.id,
+        onChange: () => renderCaptureStep(),  // re-render so the kind details refresh
+      }));
 
       // Kind-specific details (when a kind is chosen, except 'other').
       const kind = captureDraft.graphic_kind;
@@ -2749,11 +2773,7 @@
         }));
       }
 
-      c.appendChild(buildFormSection('Personal note', s => {
-        const ta = buildNoteTextarea('note', 'A line or two about why this caught your eye…');
-        ta.rows = 3;
-        s.appendChild(ta);
-      }));
+      c.appendChild(buildPersonalNoteSection());
       c.appendChild(buildSaveBar());
     }
 
@@ -2905,8 +2925,13 @@
       const queryWords = activeFilters.search.split(/\s+/).filter(Boolean);
 
       const filtered = all.filter(rec => {
-        if (activeFilters.type !== 'all' && rec.tags_human.type !== activeFilters.type) return false;
-        if (activeFilters.project && rec.tags_human.project !== activeFilters.project) return false;
+        const t = rec.tags_human || {};
+        // Pure project-mode photos have project set but no type — they should
+        // surface in the gallery under any type filter, otherwise picking
+        // "Building" hides them from the user who saved them yesterday.
+        const isPureProject = !!t.project && !t.type;
+        if (!isPureProject && activeFilters.type !== 'all' && t.type !== activeFilters.type) return false;
+        if (activeFilters.project && t.project !== activeFilters.project) return false;
         if (queryWords.length) {
           const text = rec.search_text || buildSearchText(rec);
           return queryWords.every(w => text.includes(w));
@@ -3015,10 +3040,21 @@
 
       const type = rec.tags_human.type;
 
-      // TYPE picker — editable so untagged (project) photos can be classified later
-      body.appendChild(section('Type', buildChipPicker(
-        TYPES.map(t => t.label), 'type', false, TYPES
-      )));
+      // Type swatch tiles — editable so untagged (project) photos can be classified later.
+      body.appendChild(buildSwatchSection({
+        target: rec.tags_human,
+        onChange: () => { saveDetailRecord(); renderDetail(); },
+        label: 'Type',
+        getSummary: () => {
+          const m = TYPES.find(x => x.id === rec.tags_human.type);
+          return m ? m.label : '';
+        },
+        items: TYPES,
+        field: 'type',
+        multi: false,
+        glyphFor: t => typeGlyph(t.id),
+        valueFor: t => t.id,
+      }));
 
       if (type === 'building') renderBuildingFields(body);
       if (type === 'element')  renderElementFields(body);
@@ -3107,7 +3143,7 @@
         onChange,
         label: 'Element',
         getSummary: () => t.element_name || '',
-        items: ELEMENTS_TOP_8,
+        items: ELEMENTS_TOP_12,
         field: 'element_name',
         multi: false,
         glyphFor: elementGlyph,
@@ -3127,14 +3163,25 @@
 
     // -------- Graphic fields --------
     function renderGraphicFields(body) {
-      // Kind
-      body.appendChild(section(
-        'Kind',
-        buildChipPicker(GRAPHIC_KINDS.map(k => k.label), 'graphic_kind', false, GRAPHIC_KINDS)
-      ));
+      const t = currentDetailRecord.tags_human;
+      const onChange = () => { saveDetailRecord(); renderDetail(); };
 
-      const kind = currentDetailRecord.tags_human.graphic_kind;
+      body.appendChild(buildSwatchSection({
+        target: t,
+        onChange,
+        label: 'Kind',
+        getSummary: () => {
+          const m = GRAPHIC_KINDS.find(k => k.id === t.graphic_kind);
+          return m ? m.label : '';
+        },
+        items: GRAPHIC_KINDS,
+        field: 'graphic_kind',
+        multi: false,
+        glyphFor: k => graphicKindGlyph(k.id),
+        valueFor: k => k.id,
+      }));
 
+      const kind = t.graphic_kind;
       if (kind === 'artwork') {
         body.appendChild(renderArtworkDetailSection());
       } else if (kind === 'book') {
