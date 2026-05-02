@@ -468,15 +468,16 @@
       z-index: 20;
     }
 
-    /* ============ CAPTURE — green-shell tagger ============ */
-    /* Always reference green + ink, regardless of the device theme. */
+    /* ============ CAPTURE — paper-shell tagger with green tiles ============ */
+    /* Always paper + ink, regardless of the device theme. The colour shows
+       up on the swatch tiles themselves rather than tinting the whole sheet. */
     #view-capture {
       padding: 0 0 84px;
-      background: #A8EFB7;
+      background: #F2EEE6;
       color: #0F0F0E;
     }
     #view-capture .gallery-header {
-      background: rgba(168,239,183,0.85);
+      background: rgba(242,238,230,0.85);
       padding: 0.5rem 0.9rem;
       min-height: 38px;
     }
@@ -543,8 +544,8 @@
       aspect-ratio: 1;
       max-height: 56px;
       border-radius: 8px;
-      background: #F2EEE6;
-      border: 1px solid rgba(15,15,14,0.0);
+      background: #A8EFB7;
+      border: 0;
       color: #0F0F0E;
       display: flex; align-items: center; justify-content: center;
       position: relative;
@@ -554,7 +555,7 @@
     .sw-art > svg { width: 60%; height: 60%; }
     .sw-tile.active .sw-art {
       background: #0F0F0E;
-      color: #F2EEE6;
+      color: #A8EFB7;
     }
     .sw-art .sw-check {
       position: absolute;
@@ -889,15 +890,27 @@
       color: var(--text-muted);
     }
 
-    /* ============ DETAIL ============ */
-    #view-detail { padding: 0 1rem 2rem; gap: 1rem; }
+    /* ============ DETAIL — paper shell, matches the capture tagger ============ */
+    #view-detail {
+      padding: 0 0 2rem;
+      gap: 0;
+      background: #F2EEE6;
+      color: #0F0F0E;
+    }
+    #view-detail .gallery-header {
+      background: rgba(242,238,230,0.85);
+    }
+    #view-detail .back-btn { color: #0F0F0E; }
+    #view-detail .meta-date { color: rgba(15,15,14,0.62); font-size: 0.78rem; }
 
     #detail-img {
-      width: 100%;
-      max-height: 50vh;
-      object-fit: contain;
-      border-radius: 14px;
-      background: var(--bg-elev-2);
+      width: calc(100% - 28px);
+      margin: 0 14px;
+      max-height: 28vh;
+      object-fit: cover;
+      border-radius: 10px;
+      background: #2a2a26;
+      display: block;
     }
 
     .section {
@@ -974,9 +987,10 @@
     /* Toast */
     #toast {
       position: fixed;
-      bottom: 2rem;
-      left: 50%;
-      transform: translateX(-50%) translateY(2rem);
+      left: 14px;
+      right: 14px;
+      bottom: max(env(safe-area-inset-bottom, 100px), 100px);
+      transform: translateY(2rem);
       background: var(--bg-elev);
       color: var(--text);
       padding: 0.7rem 1.2rem;
@@ -988,10 +1002,60 @@
       transition: opacity 0.2s, transform 0.2s;
       pointer-events: none;
       z-index: 100;
+      display: flex;
+      align-items: center;
+      gap: 0.7rem;
+      max-width: 460px;
+      margin: 0 auto;
     }
+    #toast .toast-icon {
+      flex-shrink: 0;
+      width: 36px; height: 36px;
+      border-radius: 8px;
+      background: #A8EFB7;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #toast .toast-text {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+    #toast .toast-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      color: #0F0F0E;
+      line-height: 1.2;
+    }
+    #toast .toast-sub {
+      font-size: 0.8rem;
+      color: rgba(15,15,14,0.62);
+      letter-spacing: -0.005em;
+      line-height: 1.2;
+    }
+    #toast .toast-action {
+      flex-shrink: 0;
+      background: #0F0F0E;
+      color: #F2EEE6;
+      border-radius: 999px;
+      padding: 9px 16px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      letter-spacing: -0.005em;
+    }
+    #toast .toast-action:active { opacity: 0.85; }
+
+    /* When the toast is in lite mode, use the green-card layout (drop the
+       round-pill default from the base #toast rule). */
+    #toast.toast-lite .toast-icon { background: #F2EEE6; }
+
     #toast.show {
       opacity: 1;
-      transform: translateX(-50%) translateY(0);
+      transform: translateY(0);
     }
   </style>
 </head>
@@ -1134,19 +1198,27 @@
     ];
 
     const TYPOLOGY = [
-      'Residential', 'Office', 'Cultural', 'Educational', 'Religious',
-      'Civic', 'Commercial', 'Hospitality', 'Industrial', 'Heritage/Ruin', 'Other'
+      'Residential', 'Office', 'Cultural', 'Educational',
+      'Religious', 'Civic', 'Commercial', 'Hospitality',
+      'Industrial', 'Heritage/Ruin',
+      // Newly added — closes a few common gaps in the architect's archive.
+      'Healthcare', 'Sports', 'Landscape',
+      'Other',
     ];
 
     const CONCEPTS = [
+      // Materiality is dropped here — it overlaps with the Element form's
+      // dedicated Materiality picker. Architectural concept "materiality"
+      // (the idea of material expression) was hard to disentangle from the
+      // concrete material list.
       { id: 'form',        label: 'Form',        hint: 'massing, geometry, composition' },
       { id: 'space',       label: 'Space',       hint: 'enclosure, sequence, proportion' },
       { id: 'light',       label: 'Light',       hint: 'daylight, shadow, atmosphere' },
-      { id: 'materiality', label: 'Materiality', hint: 'surface, texture, tactility' },
       { id: 'structure',   label: 'Structure',   hint: 'tectonics, load' },
       { id: 'context',     label: 'Context',     hint: 'site, landscape, urban' },
       { id: 'circulation', label: 'Circulation', hint: 'movement, threshold, path' },
       { id: 'craft',       label: 'Craft',       hint: 'joint, junction, made-ness' },
+      { id: 'other',       label: 'Other',       hint: 'something else' },
     ];
 
     const ELEMENT_GROUPS = {
@@ -2232,6 +2304,9 @@
       Hospitality:  '<g fill="currentColor"><rect x="6" y="12" width="28" height="22"/><rect x="10" y="16" width="3" height="3" fill="#F2EEE6"/><rect x="16" y="16" width="3" height="3" fill="#F2EEE6"/><rect x="22" y="16" width="3" height="3" fill="#F2EEE6"/><rect x="28" y="16" width="3" height="3" fill="#F2EEE6"/><rect x="10" y="22" width="3" height="3" fill="#F2EEE6"/><rect x="16" y="22" width="3" height="3" fill="#F2EEE6"/><rect x="22" y="22" width="3" height="3" fill="#F2EEE6"/><rect x="28" y="22" width="3" height="3" fill="#F2EEE6"/></g>',
       Industrial:   '<g fill="currentColor"><polygon points="4,34 4,18 12,22 12,14 20,18 20,14 28,18 28,14 36,18 36,34"/></g>',
       'Heritage/Ruin': '<g fill="currentColor"><rect x="6" y="14" width="28" height="20"/><polygon points="6,14 20,4 34,14"/><rect x="14" y="20" width="4" height="14" fill="#F2EEE6"/><rect x="22" y="20" width="4" height="14" fill="#F2EEE6"/><circle cx="20" cy="11" r="1.5" fill="#F2EEE6"/></g>',
+      Healthcare:   '<g fill="currentColor"><rect x="6" y="6" width="28" height="28"/></g><g fill="#F2EEE6"><rect x="17" y="11" width="6" height="18"/><rect x="11" y="17" width="18" height="6"/></g>',
+      Sports:       '<g fill="currentColor"><circle cx="20" cy="20" r="14"/></g><g stroke="#F2EEE6" stroke-width="1.4" fill="none"><circle cx="20" cy="20" r="6"/><line x1="20" y1="6" x2="20" y2="14"/><line x1="20" y1="26" x2="20" y2="34"/><line x1="6" y1="20" x2="14" y2="20"/><line x1="26" y1="20" x2="34" y2="20"/></g>',
+      Landscape:    '<g fill="currentColor"><path d="M4 32 Q12 22 20 26 Q28 30 36 22 V34 H4 Z"/><circle cx="12" cy="14" r="4"/><path d="M27 12 V20" stroke="currentColor" stroke-width="2"/><path d="M22 16 L27 12 L32 16" stroke="currentColor" stroke-width="2" fill="none"/></g>',
       Other:        '<g fill="currentColor"><circle cx="20" cy="20" r="14"/><text x="20" y="26" text-anchor="middle" fill="#F2EEE6" font-size="16" font-family="Inter" font-weight="600">?</text></g>',
     };
     function typologyGlyph(name) {
@@ -2242,11 +2317,11 @@
       form:        '<path d="M8 28 L20 8 L32 28 Z" fill="currentColor"/>',
       space:       '<rect x="8" y="8" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none"/>',
       light:       '<g><circle cx="20" cy="20" r="6" fill="currentColor"/><g stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><line x1="20" y1="4" x2="20" y2="9"/><line x1="20" y1="31" x2="20" y2="36"/><line x1="4" y1="20" x2="9" y2="20"/><line x1="31" y1="20" x2="36" y2="20"/><line x1="8" y1="8" x2="11" y2="11"/><line x1="29" y1="29" x2="32" y2="32"/><line x1="32" y1="8" x2="29" y2="11"/><line x1="11" y1="29" x2="8" y2="32"/></g></g>',
-      materiality: '<g fill="currentColor"><rect x="6" y="6" width="9" height="9"/><rect x="17" y="6" width="9" height="9" opacity="0.45"/><rect x="28" y="6" width="6" height="9" opacity="0.7"/><rect x="6" y="17" width="6" height="9" opacity="0.6"/><rect x="14" y="17" width="12" height="9"/><rect x="28" y="17" width="6" height="9" opacity="0.3"/><rect x="6" y="28" width="14" height="6" opacity="0.5"/><rect x="22" y="28" width="12" height="6"/></g>',
       structure:   '<g stroke="currentColor" stroke-width="2" fill="none"><line x1="6" y1="34" x2="34" y2="34"/><line x1="10" y1="34" x2="10" y2="10"/><line x1="30" y1="34" x2="30" y2="10"/><line x1="10" y1="10" x2="30" y2="10"/><line x1="10" y1="34" x2="30" y2="10"/><line x1="30" y1="34" x2="10" y2="10"/></g>',
       context:     '<g stroke="currentColor" stroke-width="1.8" fill="none"><circle cx="20" cy="20" r="13"/><circle cx="20" cy="20" r="7"/><circle cx="20" cy="20" r="2" fill="currentColor"/></g>',
       circulation: '<path d="M6 20 Q14 6 20 20 T34 20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/>',
       craft:       '<g stroke="currentColor" stroke-width="1.6" fill="none"><path d="M8 12 L32 12 M8 20 L32 20 M8 28 L32 28"/><path d="M14 8 L14 32 M26 8 L26 32"/></g>',
+      other:       '<g fill="currentColor"><circle cx="20" cy="20" r="14"/><text x="20" y="26" text-anchor="middle" fill="#F2EEE6" font-size="16" font-family="Inter" font-weight="600">?</text></g>',
     };
     function conceptGlyph(id) {
       return `<svg width="40" height="40" viewBox="0 0 40 40">${CONCEPT_GLYPHS[id] || ''}</svg>`;
@@ -2314,7 +2389,9 @@
     }
 
     // Render a section (label + summary + 4-col grid of swatch tiles).
-    function buildSwatchSection({ label, getSummary, items, field, multi, glyphFor, valueFor }) {
+    function buildSwatchSection({ label, getSummary, items, field, multi, glyphFor, valueFor, target, onChange }) {
+      const data = () => target || captureDraft;
+
       const section = document.createElement('div');
       section.className = 'sw-section';
 
@@ -2339,24 +2416,27 @@
         items.forEach(item => {
           const value = valueFor ? valueFor(item) : item;
           const labelText = (typeof item === 'object' && item.label) ? item.label : item;
+          const d = data();
           const isActive = multi
-            ? (captureDraft[field] || []).includes(value)
-            : captureDraft[field] === value;
+            ? (d[field] || []).includes(value)
+            : d[field] === value;
           const tile = buildSwatchTile({
             value,
             label: labelText,
             glyphHtml: glyphFor(item),
             isActive,
             onTap: () => {
+              const d = data();
               if (multi) {
-                if (!captureDraft[field]) captureDraft[field] = [];
-                const arr = captureDraft[field];
+                if (!d[field]) d[field] = [];
+                const arr = d[field];
                 const idx = arr.indexOf(value);
                 if (idx === -1) arr.push(value);
                 else arr.splice(idx, 1);
               } else {
-                captureDraft[field] = (captureDraft[field] === value) ? null : value;
+                d[field] = (d[field] === value) ? null : value;
               }
+              if (onChange) onChange();
               refresh();
             },
           });
@@ -2483,7 +2563,7 @@
       c.appendChild(buildSwatchSection({
         label: 'Typology',
         getSummary: () => captureDraft.typology || '',
-        items: TYPOLOGY.slice(0, 8),
+        items: TYPOLOGY,
         field: 'typology',
         multi: false,
         glyphFor: typologyGlyph,
@@ -2505,7 +2585,8 @@
       c.appendChild(buildSaveBar());
     }
 
-    function buildAuthorYearSection() {
+    function buildAuthorYearSection({ target, onChange } = {}) {
+      const data = () => target || captureDraft;
       const s = document.createElement('div');
       s.className = 'sw-section sw-section-text';
 
@@ -2521,9 +2602,10 @@
       aInp.className = 'sw-line-input';
       aInp.type = 'text';
       aInp.placeholder = 'e.g. Kahn';
-      aInp.value = captureDraft.creator || '';
+      aInp.value = data().creator || '';
       aInp.addEventListener('input', () => {
-        captureDraft.creator = aInp.value.trim() || null;
+        data().creator = aInp.value.trim() || null;
+        if (onChange) onChange();
       });
       author.appendChild(aLbl);
       author.appendChild(aInp);
@@ -2538,9 +2620,10 @@
       yInp.type = 'text';
       yInp.inputMode = 'numeric';
       yInp.placeholder = '1972';
-      yInp.value = captureDraft.year || '';
+      yInp.value = data().year || '';
       yInp.addEventListener('input', () => {
-        captureDraft.year = yInp.value.trim() || null;
+        data().year = yInp.value.trim() || null;
+        if (onChange) onChange();
       });
       year.appendChild(yLbl);
       year.appendChild(yInp);
@@ -2551,7 +2634,8 @@
       return s;
     }
 
-    function buildPersonalNoteSection() {
+    function buildPersonalNoteSection({ target, onChange } = {}) {
+      const data = () => target || captureDraft;
       const s = document.createElement('div');
       s.className = 'sw-section sw-section-text';
       const head = document.createElement('div');
@@ -2565,9 +2649,10 @@
       ta.className = 'sw-line-input';
       ta.rows = 1;
       ta.placeholder = 'A line about why this caught your eye…';
-      ta.value = captureDraft.note || '';
+      ta.value = data().note || '';
       ta.addEventListener('input', () => {
-        captureDraft.note = ta.value.trim() || null;
+        data().note = ta.value.trim() || null;
+        if (onChange) onChange();
       });
       s.appendChild(ta);
       return s;
@@ -2981,39 +3066,63 @@
       return s;
     }
 
-    // -------- Building fields --------
+    // -------- Building fields (swatch-tile design, matches capture flow) --------
     function renderBuildingFields(body) {
-      const concepts = getEffectiveConcepts();
-      body.appendChild(sectionWithNote(
-        'Typology', buildChipPicker(getEffectiveTypology(), 'typology', false), 'typology_note'
-      ));
-      body.appendChild(sectionWithNote(
-        'Concepts (multi)', buildChipPicker(concepts.map(c => c.label), 'concepts', true, concepts), 'concepts_note'
-      ));
-      body.appendChild(sectionWithNote(
-        'Materiality (multi)', buildChipPicker(getEffectiveMaterials(), 'materials', true), 'materials_note'
-      ));
-      body.appendChild(buildTextFieldsSection('Architect & year', [
-        { field: 'creator', label: 'Architect' },
-        { field: 'year',    label: 'Year' },
-      ]));
+      const t = currentDetailRecord.tags_human;
+      const onChange = () => saveDetailRecord();
+      body.appendChild(buildSwatchSection({
+        target: t,
+        onChange,
+        label: 'Typology',
+        getSummary: () => t.typology || '',
+        items: TYPOLOGY,
+        field: 'typology',
+        multi: false,
+        glyphFor: typologyGlyph,
+      }));
+      body.appendChild(buildSwatchSection({
+        target: t,
+        onChange,
+        label: 'Concept',
+        getSummary: () => (t.concepts || []).map(id => {
+          const m = CONCEPTS.find(c => c.id === id);
+          return m ? m.label : id;
+        }).join(' · '),
+        items: CONCEPTS,
+        field: 'concepts',
+        multi: true,
+        glyphFor: c => conceptGlyph(c.id),
+        valueFor: c => c.id,
+      }));
+      body.appendChild(buildAuthorYearSection({ target: t, onChange }));
     }
 
-    // -------- Element fields --------
+    // -------- Element fields (swatch-tile design) --------
     function renderElementFields(body) {
-      const wrap = document.createElement('div');
-      Object.entries(ELEMENT_GROUPS).forEach(([group, items]) => {
-        const g = document.createElement('div');
-        g.className = 'chip-group';
-        g.innerHTML = `<p class="chip-group-label">${group}</p>`;
-        const row = buildChipPickerRow(items, 'element_name', false);
-        g.appendChild(row);
-        wrap.appendChild(g);
-      });
-      body.appendChild(sectionWithNote('Element', wrap, 'element_note'));
-      body.appendChild(sectionWithNote(
-        'Materiality (multi)', buildChipPicker(getEffectiveMaterials(), 'materials', true), 'materials_note'
-      ));
+      const t = currentDetailRecord.tags_human;
+      const onChange = () => saveDetailRecord();
+      if (!t.materials) t.materials = [];
+      body.appendChild(buildSwatchSection({
+        target: t,
+        onChange,
+        label: 'Element',
+        getSummary: () => t.element_name || '',
+        items: ELEMENTS_TOP_8,
+        field: 'element_name',
+        multi: false,
+        glyphFor: elementGlyph,
+      }));
+      body.appendChild(buildSwatchSection({
+        target: t,
+        onChange,
+        label: 'Materiality',
+        getSummary: () => (t.materials || []).join(' · '),
+        items: MATERIALS.slice(0, 8),
+        field: 'materials',
+        multi: true,
+        glyphFor: materialPatternSvg,
+      }));
+      body.appendChild(buildAuthorYearSection({ target: t, onChange }));
     }
 
     // -------- Graphic fields --------
@@ -3345,9 +3454,53 @@
       }, ms);
     }
 
+    // Mode-icon SVGs for the saved-photo toast
+    const TYPE_ICONS = {
+      building: '<g fill="#0F0F0E"><rect x="2" y="9" width="9" height="14"/><rect x="13" y="5" width="9" height="18"/></g><g fill="#A8EFB7"><rect x="4" y="11" width="2" height="2"/><rect x="7" y="11" width="2" height="2"/><rect x="4" y="15" width="2" height="2"/><rect x="7" y="15" width="2" height="2"/><rect x="4" y="19" width="2" height="2"/><rect x="15" y="8" width="2" height="2"/><rect x="18" y="8" width="2" height="2"/><rect x="15" y="12" width="2" height="2"/><rect x="18" y="12" width="2" height="2"/><rect x="15" y="16" width="2" height="2"/><rect x="18" y="16" width="2" height="2"/></g>',
+      element:  '<g fill="#0F0F0E"><rect x="9" y="4" width="7" height="2"/><rect x="9" y="22" width="7" height="2"/><rect x="11" y="6" width="3" height="16"/></g>',
+      graphic:  '<g fill="#0F0F0E"><rect x="5" y="3" width="15" height="22"/></g><g fill="#A8EFB7"><rect x="7" y="6" width="11" height="1"/><rect x="7" y="9" width="11" height="1"/><rect x="7" y="12" width="11" height="1"/><rect x="7" y="15" width="8" height="1"/><rect x="7" y="18" width="11" height="1"/></g>',
+    };
+
     function toastLiteSaved(id) {
       const t = TYPES.find(x => x.id === getReferenceType()) || TYPES[0];
-      toastWithAction(`Saved as ${t.label.toLowerCase()}`, 'Tag now', () => openDetail(id), { color: '#A8EFB7' });
+      const el = document.getElementById('toast');
+      el.innerHTML = '';
+      el.classList.add('toast-lite');
+      el.style.background = '#A8EFB7';
+      el.style.color = '#0F0F0E';
+      el.style.borderRadius = '14px';
+      el.style.padding = '10px 8px 10px 12px';
+      const icon = document.createElement('div');
+      icon.className = 'toast-icon';
+      icon.innerHTML = `<svg viewBox="0 0 24 28" width="22" height="26">${TYPE_ICONS[t.id] || TYPE_ICONS.building}</svg>`;
+      const text = document.createElement('div');
+      text.className = 'toast-text';
+      text.innerHTML = `
+        <div class="toast-title">Saved as ${t.label.toLowerCase()}</div>
+        <div class="toast-sub">Tag later in gallery</div>
+      `;
+      const btn = document.createElement('button');
+      btn.className = 'toast-action';
+      btn.textContent = 'Tag now';
+      btn.addEventListener('click', () => {
+        clearTimeout(toastTimer);
+        el.classList.remove('show');
+        el.style.pointerEvents = 'none';
+        openDetail(id);
+      });
+      el.appendChild(icon);
+      el.appendChild(text);
+      el.appendChild(btn);
+      el.classList.add('show');
+      el.style.pointerEvents = 'auto';
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        el.classList.remove('show');
+        el.style.pointerEvents = 'none';
+        // Reset inline styles so subsequent plain toasts look right.
+        el.classList.remove('toast-lite');
+        el.removeAttribute('style');
+      }, 4500);
     }
 
     // ============================================================
