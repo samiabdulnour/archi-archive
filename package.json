@@ -11,8 +11,8 @@
     "url": "git+https://github.com/samiabdulnour/archi-ve.git"
   },
   "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "author": "Sami Abdulnour <hi@samiabdulnour.com>",
+  "license": "UNLICENSED",
   "type": "commonjs",
   "bugs": {
     "url": "https://github.com/samiabdulnour/archi-ve/issues"
